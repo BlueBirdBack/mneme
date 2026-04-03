@@ -7,11 +7,11 @@ Goal: make Six's memory recall healthy, testable, and boringly reliable.
 - [x] Identify real failure mode
 - [x] Switch memory search off broken `local` embeddings
 - [x] Set provider to `gemini`
-- [ ] Verify gateway restart completed cleanly
-- [ ] Verify memory status succeeds
-- [ ] Verify index exists and is current
-- [ ] Verify semantic recall returns useful results
-- [ ] Verify citations/source paths are available when needed
+- [x] Verify gateway restart completed cleanly
+- [x] Verify memory status succeeds
+- [x] Verify index exists and is current
+- [x] Verify semantic recall returns useful results
+- [x] Verify citations/source paths are available when needed
 
 ## Mneme checks to build
 - [ ] Detect broken provider configuration
@@ -21,7 +21,7 @@ Goal: make Six's memory recall healthy, testable, and boringly reliable.
 - [ ] Report clear failure reasons and suggested fixes
 
 ## Exit criteria
-- [ ] `openclaw memory status --deep` succeeds
-- [ ] at least one semantic recall query returns relevant memory
-- [ ] recall is no longer dependent on unavailable local embeddings
-- [ ] the failure is documented as Mneme's first real-world target
+- [x] `openclaw memory status --deep` succeeds
+- [x] at least one semantic recall query returns relevant memory
+- [x] recall is no longer dependent on unavailable local embeddings
+- [x] the failure is documented as Mneme's first real-world target
