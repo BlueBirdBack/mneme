@@ -28,15 +28,13 @@ EXTRACTORS: list[tuple[str, re.Pattern[str]]] = [
     ("bdeep_checkout", re.compile(r"(?:Main checkout|real checkout)\s*:\s*`([^`]+)`", re.I)),
 ]
 
-STALE_KEYWORDS = [
-    "current state",
-    "pending",
-    "not yet",
-    "fixing",
-    "todo",
-    "active —",
-    "active -",
-    "working hypothesis",
+STALE_PATTERNS = [
+    re.compile(r"\bcurrent state\b", re.I),
+    re.compile(r"\bpending\b", re.I),
+    re.compile(r"\bnot yet\b", re.I),
+    re.compile(r"\btodo\b", re.I),
+    re.compile(r"\bworking hypothesis\b", re.I),
+    re.compile(r"\bactive\s+[—-]", re.I),
 ]
 
 IGNORE_FILES = {
@@ -139,16 +137,17 @@ def stale_candidates(root: Path, stale_days: int) -> list[StaleCandidate]:
             if not factish:
                 continue
             if age_days is not None and age_days >= stale_days:
-                for kw in STALE_KEYWORDS:
-                    if kw in lower:
-                        out.append(StaleCandidate(relative(root, path), i, age_days, line, f"old file + keyword '{kw}'"))
+                for pat in STALE_PATTERNS:
+                    m = pat.search(line)
+                    if m:
+                        out.append(StaleCandidate(relative(root, path), i, age_days, line, f"old file + pattern {pat.pattern!r}"))
                         break
             elif path.name == "MEMORY.md":
                 m = FILE_DATE_RE.search(line)
                 if m:
                     d = datetime.strptime(m.group(1), "%Y-%m-%d").date()
                     line_age = (today - d).days
-                    if line_age >= stale_days and any(kw in lower for kw in STALE_KEYWORDS):
+                    if line_age >= stale_days and any(p.search(line) for p in STALE_PATTERNS):
                         out.append(StaleCandidate(relative(root, path), i, line_age, line, "dated line in MEMORY.md"))
     return out
 
