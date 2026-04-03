@@ -107,6 +107,7 @@ Mneme now includes its first live check:
 - [`scripts/mneme_memory_drift.py`](./scripts/mneme_memory_drift.py) — detect likely contradictions and stale facts in memory files
 - [`scripts/mneme_run.py`](./scripts/mneme_run.py) — run the Mneme maintenance flow in one command
 - [`scripts/mneme_llm_compile.py`](./scripts/mneme_llm_compile.py) — prepare/validate LLM-assisted compile passes against raw evidence
+- [`scripts/mneme_materialize_candidates.py`](./scripts/mneme_materialize_candidates.py) — turn validated LLM candidate entries into compiled outputs
 
 ## Docs
 
@@ -121,6 +122,7 @@ Mneme now includes its first live check:
 - [Memory drift](./docs/memory-drift.md)
 - [Runner](./docs/runner.md)
 - [LLM compiler](./docs/llm-compiler.md)
+- [Candidate materialization](./docs/materialize-candidates.md)
 - [Automation](./docs/automation.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
