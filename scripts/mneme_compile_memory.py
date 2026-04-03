@@ -17,6 +17,8 @@ This version intentionally favors quality over recall volume:
 - heading-only lines are dropped from compiled entries
 - low-value project noise is suppressed
 - timeline events are deduplicated more aggressively
+- bucket classification uses stronger heading-aware routing
+- people/profile material gets its own bucket instead of leaking into project/system noise
 """
 
 from __future__ import annotations
@@ -35,10 +37,12 @@ CATEGORY_CONFIG = {
             r"\bproject\b", r"\brepo\b", r"\bdeploy\b", r"\bworktree\b", r"\bcheckout\b",
             r"\bdemo\b", r"\bfrontend\b", r"\bbaseurl\b", r"\blive\b", r"\bmap\b",
             r"\bgeo\b", r"\btruth layer\b", r"\betl\b", r"\bcurat(ed|ion)\b",
+            r"\btag correction\b", r"\bpositioning\b",
         ],
         "exclude": [
             r"\bnats\b", r"\bmysql\b", r"\bmqtt\b", r"\bssh\b", r"\bgateway\b",
             r"\btoken\b", r"\bcert\b", r"\bapi key\b", r"\bservice(s)?\b",
+            r"\btimezone\b", r"\bpronouns?\b", r"\bwhat to call\b",
         ],
         "headingHints": [r"active projects", r"durable project facts", r"bdeep", r"yibin", r"aqua", r"mneme"],
     },
@@ -47,8 +51,12 @@ CATEGORY_CONFIG = {
             r"\bhost\b", r"\bserver\b", r"\bssh\b", r"\bgateway\b", r"\bnats\b",
             r"\bmemory\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bapi\b",
             r"\bservice(s)?\b", r"\bwebsocket\b", r"\btunnel\b", r"\bcert\b", r"\bport\b",
+            r"\bendpoint\b", r"\bcluster\b", r"\bcontainer\b", r"\bdocker\b",
         ],
-        "exclude": [r"\bbounty\b", r"\bissue\b"],
+        "exclude": [
+            r"\bbounty\b", r"\bissue\b", r"\bprefers\b", r"\bavoid\b", r"\bno public\b",
+            r"\bproof summaries\b", r"\bdecision support\b",
+        ],
         "headingHints": [r"systems", r"infrastructure", r"key infrastructure", r"access", r"memory stack"],
     },
     "decisions": {
@@ -56,27 +64,45 @@ CATEGORY_CONFIG = {
             r"\bdecision\b", r"\bhard rule\b", r"\bdo not\b", r"\bmust\b", r"\bshould\b",
             r"\bprefer\b", r"\brule\b", r"\bpolicy\b", r"\bchosen\b", r"\bkeep\b",
             r"\bavoid\b", r"\bno public\b", r"\bprimary target\b", r"\bintentional\b",
+            r"\btruth layer\b", r"\bmap is the primary target\b",
         ],
-        "exclude": [r"\boutage\b", r"\bfailed\b"],
-        "headingHints": [r"decisions", r"preferences", r"methods"],
+        "exclude": [
+            r"\boutage\b", r"\bfailed\b", r"\bmysql\b", r"\bmqtt\b", r"\bssh port\b",
+            r"\bhost\b\s*:\s*`?\d", r"\bserver\b\s*is\s*\d",
+        ],
+        "headingHints": [r"decisions", r"preferences", r"methods", r"hard constraints"],
     },
     "incidents": {
         "include": [
             r"\bincident\b", r"\broot cause\b", r"\boutage\b", r"\bfailed\b", r"\bbroken\b",
             r"\bcompromise\b", r"\bspike\b", r"\bcpu\b", r"\bram\b", r"\bfix\b",
             r"\brecovered\b", r"\bdelay\b", r"\bgarbl(ed|ing)\b", r"\bbug\b",
+            r"\bmemory search\b.*\bunavailable\b", r"\bwrong path\b",
         ],
-        "exclude": [],
+        "exclude": [r"\bprefer left alignment\b", r"\bproof summaries\b"],
         "headingHints": [r"incidents", r"warnings", r"alert", r"postmortem"],
+    },
+    "people": {
+        "include": [
+            r"\bname\b", r"\bwhat to call\b", r"\bpronouns?\b", r"\btimezone\b", r"\bvibe\b",
+            r"\bcreature\b", r"\bemoji\b", r"\bavatar\b", r"\bb3\b", r"\bbruce bell\b",
+            r"\buser\b.*\bname\b", r"\bcall them\b", r"\bprefers\b.*\breplies\b",
+        ],
+        "exclude": [
+            r"\bproject\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bnats\b",
+            r"\bservice(s)?\b", r"\bdeploy\b", r"\bincident\b",
+        ],
+        "headingHints": [r"identity", r"user", r"people", r"profile"],
     },
 }
 
-CATEGORY_PRIORITY = {"incidents": 4, "decisions": 3, "systems": 2, "projects": 1}
+CATEGORY_PRIORITY = {"incidents": 5, "decisions": 4, "systems": 3, "projects": 2, "people": 1}
 DOCUMENT_TITLES = {
     "projects": "Compiled Projects",
     "systems": "Compiled Systems",
     "decisions": "Compiled Decisions",
     "incidents": "Compiled Incidents",
+    "people": "Compiled People",
     "timeline": "Compiled Timeline",
 }
 ENTRY_TYPES = {
@@ -84,7 +110,15 @@ ENTRY_TYPES = {
     "systems": "system",
     "decisions": "decision",
     "incidents": "incident",
+    "people": "person",
     "timeline": "timeline_event",
+}
+HEADING_BUCKET_HINTS = {
+    "projects": [r"active projects", r"durable project facts", r"bdeep", r"yibin", r"aqua", r"mneme"],
+    "systems": [r"key infrastructure", r"systems", r"access", r"memory stack"],
+    "decisions": [r"durable decisions", r"preferences", r"methods", r"hard constraints"],
+    "incidents": [r"incidents", r"warnings"],
+    "people": [r"identity", r"user", r"people", r"profile"],
 }
 
 SECRET_PATTERNS = [
@@ -94,12 +128,12 @@ SECRET_PATTERNS = [
     (re.compile(r"(pass(word)?\s*[:=]\s*)([^\s,`]+)", re.I), r"\1[REDACTED]"),
 ]
 
-IGNORE_MEMORY_FILES = {"projects.md", "systems.md", "decisions.md", "incidents.md", "timeline.md"}
+IGNORE_MEMORY_FILES = {"projects.md", "systems.md", "decisions.md", "incidents.md", "timeline.md", "people.md"}
 GENERIC_TITLES = {
     "conversation summary", "source files", "sources", "tools", "methods", "pending",
-    "what it does", "what it is", "what it is not", "goal", "status", "identity",
-    "hard constraints", "operational lessons", "key infrastructure access", "docs",
+    "what it does", "what it is", "what it is not", "goal", "status",
     "current status", "stable assumptions", "recommended next step", "practical interpretation",
+    "docs", "automation", "runtime orchestration", "continuation guide",
 }
 LOW_VALUE_PATTERNS = [
     re.compile(r"\bTODO\b", re.I),
@@ -111,12 +145,6 @@ LOW_VALUE_PATTERNS = [
     re.compile(r"\bPR\s*#\d+\b", re.I),
     re.compile(r"\bissue\s*#\d+\b", re.I),
     re.compile(r"sender_label|message_id|timestamp|untrusted metadata", re.I),
-]
-PERSON_PROFILE_PATTERNS = [
-    re.compile(r"\bpronouns?\b", re.I),
-    re.compile(r"\bwhat to call\b", re.I),
-    re.compile(r"\bavatar\b", re.I),
-    re.compile(r"\bcreature\b", re.I),
 ]
 
 
@@ -241,7 +269,7 @@ def is_generic_or_noise_title(text: str) -> bool:
         return True
     if re.fullmatch(r"20\d{2} \d{2} \d{2}", norm):
         return True
-    return any(p.search(text) for p in PERSON_PROFILE_PATTERNS)
+    return False
 
 
 def is_low_value_project_noise(text: str) -> bool:
@@ -262,6 +290,17 @@ def is_low_value_item(item: SourceLine, category: str | None = None) -> bool:
     return False
 
 
+def heading_bucket(item: SourceLine) -> str | None:
+    heading_text = " > ".join(item.heading_path).lower()
+    best = None
+    score = 0
+    for category, pats in HEADING_BUCKET_HINTS.items():
+        s = sum(2 for pat in pats if re.search(pat, heading_text))
+        if s > score:
+            best, score = category, s
+    return best if score >= 2 else None
+
+
 def score_category(item: SourceLine, category: str) -> int:
     cfg = CATEGORY_CONFIG[category]
     text = item.text.lower()
@@ -275,7 +314,7 @@ def score_category(item: SourceLine, category: str) -> int:
         if re.search(pat, heading_text):
             score += 1
     for pat in cfg.get("exclude", []):
-        if re.search(pat, text):
+        if re.search(pat, text) or re.search(pat, body):
             score -= 2
     return score
 
@@ -283,6 +322,9 @@ def score_category(item: SourceLine, category: str) -> int:
 def classify_item(item: SourceLine) -> str | None:
     if is_low_value_item(item):
         return None
+    forced = heading_bucket(item)
+    if forced and not is_low_value_item(item, forced):
+        return forced
     best_category = None
     best_score = 0
     for category in CATEGORY_CONFIG:
@@ -390,9 +432,7 @@ def dedupe_timeline(entries: list[tuple[str, str, str, int | None, str | None]])
     for date_key, title, rel, line_no, evidence_id in sorted(entries):
         norm = normalize_title(title)
         key = (date_key, norm)
-        if key == last_key:
-            continue
-        if key in seen_same_day:
+        if key == last_key or key in seen_same_day:
             continue
         seen_same_day.add(key)
         out.append((date_key, title, rel, line_no, evidence_id))
@@ -431,21 +471,10 @@ def build_compiled_entries(kind: str, items: list[SourceLine], document_id: str,
             "state": "observed",
             "updatedAt": generated_at,
             "tags": [kind.rstrip("s"), "compiled"],
-            "facts": [
-                {
-                    "key": "sourceLine",
-                    "value": item.text,
-                    "state": "observed",
-                    "evidenceRefs": evidence_refs(item),
-                }
-            ],
+            "facts": [{"key": "sourceLine", "value": item.text, "state": "observed", "evidenceRefs": evidence_refs(item)}],
             "relations": [],
             "evidenceRefs": evidence_refs(item),
-            "meta": {
-                "sourcePath": item.file,
-                "lineNo": item.line_no,
-                "headingPath": item.heading_path,
-            },
+            "meta": {"sourcePath": item.file, "lineNo": item.line_no, "headingPath": item.heading_path},
         }
         if item.observed_at:
             entry["observedAt"] = item.observed_at
@@ -481,42 +510,26 @@ def build_timeline_entries(entries: list[tuple[str, str, str, int | None, str | 
 
 
 def write_category_markdown(path: Path, title: str, entries: list[dict[str, Any]], sources: list[str], mode: str) -> None:
-    lines = [
-        f"# Compiled Memory — {title}",
-        "",
-        f"> Generated by `scripts/mneme_compile_memory.py` from **{mode}** input. Review before treating as truth.",
-        "",
-    ]
+    lines = [f"# Compiled Memory — {title}", "", f"> Generated by `scripts/mneme_compile_memory.py` from **{mode}** input. Review before treating as truth.", ""]
     if entries:
         for entry in entries:
-            lines.append(f"## {entry['title']}")
-            lines.append("")
-            lines.append(entry['summary'])
-            lines.append("")
-            lines.append(f"- Entry: `{entry['id']}`")
-            lines.append(f"- State: `{entry['state']}`")
-            lines.append(f"- Facts: {len(entry.get('facts', []))}")
+            lines += [f"## {entry['title']}", "", entry['summary'], "", f"- Entry: `{entry['id']}`", f"- State: `{entry['state']}`", f"- Facts: {len(entry.get('facts', []))}"]
             for fact in entry.get('facts', [])[:6]:
                 lines.append(f"  - {fact['value']}")
             if len(entry.get('facts', [])) > 6:
                 lines.append(f"  - … {len(entry['facts']) - 6} more")
             lines.append("")
     else:
-        lines.extend(["## Candidate facts", "", "- No candidate facts found in this pass.", ""])
-    lines.extend(["## Sources", *[f"- `{s}`" for s in sources], ""])
+        lines += ["## Candidate facts", "", "- No candidate facts found in this pass.", ""]
+    lines += ["## Sources", *[f"- `{s}`" for s in sources], ""]
     path.write_text("\n".join(lines))
 
 
 def write_timeline_markdown(out_path: Path, entries: list[tuple[str, str, str, int | None, str | None]], sources: list[str], mode: str, timeline_entries: list[dict[str, Any]]) -> None:
-    lines = [
-        "# Compiled Memory — Timeline",
-        "",
-        f"> Generated by `scripts/mneme_compile_memory.py` from **{mode}** input. Review before treating as truth.",
-        "",
-    ]
+    lines = ["# Compiled Memory — Timeline", "", f"> Generated by `scripts/mneme_compile_memory.py` from **{mode}** input. Review before treating as truth.", ""]
     if entries:
         current = None
-        for (date_key, title, rel, line_no, _evidence_id), entry in zip(entries, timeline_entries):
+        for (date_key, title, rel, line_no, _), entry in zip(entries, timeline_entries):
             if date_key != current:
                 lines.append(f"## {date_key}")
                 current = date_key
@@ -527,7 +540,7 @@ def write_timeline_markdown(out_path: Path, entries: list[tuple[str, str, str, i
                 lines.append(f"  Line: `{line_no}`")
     else:
         lines.append("- No timeline entries found.")
-    lines.extend(["", "## Sources", *[f"- `{s}`" for s in sources], ""])
+    lines += ["", "## Sources", *[f"- `{s}`" for s in sources], ""]
     out_path.write_text("\n".join(lines))
 
 
@@ -536,19 +549,19 @@ def build_report(out_dir: Path, sources: list[str], collected: dict[str, list[So
     lines = ["# Mneme Compile Report", "", f"Generated: {now}", f"Mode: {mode}"]
     if raw_dir:
         lines.append(f"Raw input: `{raw_dir}`")
-    lines.extend(["", "## Inputs", *[f"- `{s}`" for s in sources], "", "## Candidate counts"])
+    lines += ["", "## Inputs", *[f"- `{s}`" for s in sources], "", "## Candidate counts"]
     for category, items in collected.items():
         lines.append(f"- {category}: {len(unique_lines(items))}")
-    lines.extend([f"- documents: {document_count}", f"- entries: {entry_count}", "", "## Notes", "- Heading-only lines are suppressed.", "- Low-value project noise is filtered.", "- Timeline events are deduplicated by day/title.", ""])
+    lines += [f"- documents: {document_count}", f"- entries: {entry_count}", "", "## Notes", "- Heading-only lines are suppressed.", "- Low-value project noise is filtered.", "- Timeline events are deduplicated by day/title.", "- Bucket classification is heading-aware and includes a people/profile lane.", ""]
     (out_dir / "report.md").write_text("\n".join(lines))
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a first-pass compiled memory pack.")
-    parser.add_argument("--root", default=".", help="Workspace root containing MEMORY.md and memory/*.md")
-    parser.add_argument("--out", default="compiled", help="Output directory for compiled files")
-    parser.add_argument("--raw", default=None, help="Directory containing raw/sources.jsonl and raw/items.jsonl")
-    parser.add_argument("--legacy-direct", action="store_true", help="Ignore raw evidence and parse markdown directly")
+    parser.add_argument("--root", default=".")
+    parser.add_argument("--out", default="compiled")
+    parser.add_argument("--raw", default=None)
+    parser.add_argument("--legacy-direct", action="store_true")
     args = parser.parse_args()
 
     root = Path(args.root).expanduser().resolve()
@@ -573,7 +586,7 @@ def main() -> int:
 
     documents: list[dict[str, Any]] = []
     entries_json: list[dict[str, Any]] = []
-    for kind in ("projects", "systems", "decisions", "incidents"):
+    for kind in ("projects", "systems", "decisions", "incidents", "people"):
         uniq = unique_lines(collected[kind])
         doc_id = f"doc:compiled:{kind}"
         entries = build_compiled_entries(kind, uniq, doc_id, generated_at)

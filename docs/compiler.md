@@ -19,6 +19,7 @@ And produce this:
 - `compiled/systems.md`
 - `compiled/decisions.md`
 - `compiled/incidents.md`
+- `compiled/people.md`
 - `compiled/timeline.md`
 - `compiled/report.md`
 
@@ -73,3 +74,7 @@ Raw memory files are chronological.
 Useful memory is structural.
 
 The compiler is the bridge between the two.
+
+## Bucket classification note
+
+The compiler now uses stronger heading-aware routing and includes a `people` lane so identity/profile material is less likely to leak into project/system/decision buckets.

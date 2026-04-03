@@ -48,7 +48,7 @@ def main() -> int:
         for doc in docs:
             categories.append(doc.get("kind", "unknown"))
         for md in in_dir.glob("*.md"):
-            if md.name in {"projects.md", "systems.md", "decisions.md", "incidents.md", "timeline.md"}:
+            if md.name in {"projects.md", "systems.md", "decisions.md", "incidents.md", "people.md", "timeline.md"}:
                 (out_dir / md.name).write_text(md.read_text(errors="replace"))
 
     write_jsonl(out_dir / "documents.jsonl", documents)
@@ -75,7 +75,7 @@ def main() -> int:
         "",
         "## Included views",
     ]
-    for name in ["projects.md", "systems.md", "decisions.md", "incidents.md", "timeline.md"]:
+    for name in ["projects.md", "systems.md", "decisions.md", "incidents.md", "people.md", "timeline.md"]:
         if (out_dir / name).exists():
             lines.append(f"- `{name}`")
     lines.extend(["", "## Inputs", *[f"- `{Path(x).expanduser().resolve()}`" for x in args.inputs], ""])
