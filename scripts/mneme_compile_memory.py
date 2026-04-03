@@ -13,7 +13,10 @@ Outputs:
 - compiled/entries.jsonl
 - rendered markdown views
 
-The output is a starting point for human/agent review, not final truth.
+This version intentionally favors quality over recall volume:
+- heading-only lines are dropped from compiled entries
+- low-value project noise is suppressed
+- timeline events are deduplicated more aggressively
 """
 
 from __future__ import annotations
@@ -29,13 +32,13 @@ from typing import Any, Iterable
 CATEGORY_CONFIG = {
     "projects": {
         "include": [
-            r"\bproject\b", r"\brepo\b", r"\bbranch\b", r"\bdeploy\b", r"\bworktree\b",
-            r"\bcheckout\b", r"\bdemo\b", r"\bfrontend\b", r"\bbaseurl\b", r"\b/map\b",
-            r"\bgeo\b", r"\btruth layer\b",
+            r"\bproject\b", r"\brepo\b", r"\bdeploy\b", r"\bworktree\b", r"\bcheckout\b",
+            r"\bdemo\b", r"\bfrontend\b", r"\bbaseurl\b", r"\blive\b", r"\bmap\b",
+            r"\bgeo\b", r"\btruth layer\b", r"\betl\b", r"\bcurat(ed|ion)\b",
         ],
         "exclude": [
             r"\bnats\b", r"\bmysql\b", r"\bmqtt\b", r"\bssh\b", r"\bgateway\b",
-            r"\btoken\b", r"\bcert\b", r"\bservice(s)?\b", r"\bapi key\b", r"\bport\b",
+            r"\btoken\b", r"\bcert\b", r"\bapi key\b", r"\bservice(s)?\b",
         ],
         "headingHints": [r"active projects", r"durable project facts", r"bdeep", r"yibin", r"aqua", r"mneme"],
     },
@@ -45,36 +48,30 @@ CATEGORY_CONFIG = {
             r"\bmemory\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bapi\b",
             r"\bservice(s)?\b", r"\bwebsocket\b", r"\btunnel\b", r"\bcert\b", r"\bport\b",
         ],
-        "exclude": [r"\bbounty\b", r"\bissue\b", r"\bdecision\b"],
+        "exclude": [r"\bbounty\b", r"\bissue\b"],
         "headingHints": [r"systems", r"infrastructure", r"key infrastructure", r"access", r"memory stack"],
     },
     "decisions": {
         "include": [
             r"\bdecision\b", r"\bhard rule\b", r"\bdo not\b", r"\bmust\b", r"\bshould\b",
-            r"\bprefer\b", r"\brule\b", r"\bchosen\b", r"\blocked\b", r"\bkeep\b",
-            r"\bprimary target\b", r"\bintentional\b", r"\barchitecture decision\b",
+            r"\bprefer\b", r"\brule\b", r"\bpolicy\b", r"\bchosen\b", r"\bkeep\b",
+            r"\bavoid\b", r"\bno public\b", r"\bprimary target\b", r"\bintentional\b",
         ],
-        "exclude": [r"\bissue\b", r"\boutage\b", r"\bfailed\b"],
-        "headingHints": [r"decisions", r"durable decisions", r"preferences", r"methods"],
+        "exclude": [r"\boutage\b", r"\bfailed\b"],
+        "headingHints": [r"decisions", r"preferences", r"methods"],
     },
     "incidents": {
         "include": [
             r"\bincident\b", r"\broot cause\b", r"\boutage\b", r"\bfailed\b", r"\bbroken\b",
             r"\bcompromise\b", r"\bspike\b", r"\bcpu\b", r"\bram\b", r"\bfix\b",
-            r"\balert\b", r"\battack\b", r"\bproblem\b",
+            r"\brecovered\b", r"\bdelay\b", r"\bgarbl(ed|ing)\b", r"\bbug\b",
         ],
         "exclude": [],
-        "headingHints": [r"incidents", r"warnings", r"supply chain"],
+        "headingHints": [r"incidents", r"warnings", r"alert", r"postmortem"],
     },
 }
 
-CATEGORY_PRIORITY = {
-    "incidents": 4,
-    "decisions": 3,
-    "systems": 2,
-    "projects": 1,
-}
-
+CATEGORY_PRIORITY = {"incidents": 4, "decisions": 3, "systems": 2, "projects": 1}
 DOCUMENT_TITLES = {
     "projects": "Compiled Projects",
     "systems": "Compiled Systems",
@@ -82,7 +79,6 @@ DOCUMENT_TITLES = {
     "incidents": "Compiled Incidents",
     "timeline": "Compiled Timeline",
 }
-
 ENTRY_TYPES = {
     "projects": "project",
     "systems": "system",
@@ -96,39 +92,32 @@ SECRET_PATTERNS = [
     (re.compile(r"(token\s*[:=]\s*)([^\s,`]+)", re.I), r"\1[REDACTED]"),
     (re.compile(r"(api[_-]?key\s*[:=]\s*)([^\s,`]+)", re.I), r"\1[REDACTED]"),
     (re.compile(r"(pass(word)?\s*[:=]\s*)([^\s,`]+)", re.I), r"\1[REDACTED]"),
-    (re.compile(r"(botToken\s*[:=]\s*)([^\s,`]+)", re.I), r"\1[REDACTED]"),
 ]
 
-IGNORE_MEMORY_FILES = {
-    "projects.md",
-    "systems.md",
-    "decisions.md",
-    "incidents.md",
-    "timeline.md",
-}
-
+IGNORE_MEMORY_FILES = {"projects.md", "systems.md", "decisions.md", "incidents.md", "timeline.md"}
 GENERIC_TITLES = {
-    "what happened",
-    "tools",
-    "tools set up",
-    "source",
-    "context",
-    "dependencies",
-    "shared config",
-    "technical notes",
-    "reminders",
-    "fleet reference",
-    "completed projects",
-    "pending",
-    "pending blocked",
-    "historical pending items at the time",
-    "durable project facts",
-    "active projects",
-    "durable decisions preferences",
-    "operational lessons",
-    "hard constraints",
-    "key infrastructure access",
+    "conversation summary", "source files", "sources", "tools", "methods", "pending",
+    "what it does", "what it is", "what it is not", "goal", "status", "identity",
+    "hard constraints", "operational lessons", "key infrastructure access", "docs",
+    "current status", "stable assumptions", "recommended next step", "practical interpretation",
 }
+LOW_VALUE_PATTERNS = [
+    re.compile(r"\bTODO\b", re.I),
+    re.compile(r"\bpending\b", re.I),
+    re.compile(r"\bblocked\b", re.I),
+    re.compile(r"\bbranch\b\s+[`\w/-]+", re.I),
+    re.compile(r"\bcommit\b\s+[0-9a-f]{7,40}\b", re.I),
+    re.compile(r"\b[0-9a-f]{7,40}\b"),
+    re.compile(r"\bPR\s*#\d+\b", re.I),
+    re.compile(r"\bissue\s*#\d+\b", re.I),
+    re.compile(r"sender_label|message_id|timestamp|untrusted metadata", re.I),
+]
+PERSON_PROFILE_PATTERNS = [
+    re.compile(r"\bpronouns?\b", re.I),
+    re.compile(r"\bwhat to call\b", re.I),
+    re.compile(r"\bavatar\b", re.I),
+    re.compile(r"\bcreature\b", re.I),
+]
 
 
 @dataclass
@@ -139,6 +128,7 @@ class SourceLine:
     evidence_id: str | None = None
     observed_at: str | None = None
     heading_path: list[str] = field(default_factory=list)
+    kind: str | None = None
 
 
 def redact(text: str) -> str:
@@ -172,9 +162,8 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
         return rows
     for line in path.read_text(errors="replace").splitlines():
         line = line.strip()
-        if not line:
-            continue
-        rows.append(json.loads(line))
+        if line:
+            rows.append(json.loads(line))
     return rows
 
 
@@ -192,9 +181,7 @@ def source_files(root: Path) -> list[Path]:
     memory_dir = root / "memory"
     if memory_dir.exists():
         for path in sorted(memory_dir.glob("*.md")):
-            if path.name in IGNORE_MEMORY_FILES:
-                continue
-            if path.name.endswith("-memory-pre-trim.md") or path.name.endswith(".bak"):
+            if path.name in IGNORE_MEMORY_FILES or path.name.endswith((".bak", "-memory-pre-trim.md")):
                 continue
             files.append(path)
     return files
@@ -226,16 +213,63 @@ def iter_candidate_lines(path: Path, root: Path) -> Iterable[SourceLine]:
                 line_no=i,
                 text=redact(line),
                 heading_path=heading_path_from_lines(lines, i),
+                kind="memory_line",
             )
+
+
+def is_heading_only_text(text: str) -> bool:
+    stripped = text.strip()
+    if not stripped.startswith("#"):
+        return False
+    lines = [ln.strip() for ln in stripped.splitlines() if ln.strip()]
+    return len(lines) == 1
+
+
+def first_body_line(text: str) -> str:
+    for ln in text.splitlines():
+        s = ln.strip()
+        if s and not s.startswith("#"):
+            return s
+    return text.splitlines()[0].strip() if text.splitlines() else text.strip()
+
+
+def is_generic_or_noise_title(text: str) -> bool:
+    norm = normalize_title(text)
+    if not norm:
+        return True
+    if norm in GENERIC_TITLES:
+        return True
+    if re.fullmatch(r"20\d{2} \d{2} \d{2}", norm):
+        return True
+    return any(p.search(text) for p in PERSON_PROFILE_PATTERNS)
+
+
+def is_low_value_project_noise(text: str) -> bool:
+    return any(p.search(text) for p in LOW_VALUE_PATTERNS)
+
+
+def is_low_value_item(item: SourceLine, category: str | None = None) -> bool:
+    text = item.text.strip()
+    if not text:
+        return True
+    if is_heading_only_text(text):
+        return True
+    body = first_body_line(text)
+    if is_generic_or_noise_title(body):
+        return True
+    if category == "projects" and is_low_value_project_noise(text):
+        return True
+    return False
 
 
 def score_category(item: SourceLine, category: str) -> int:
     cfg = CATEGORY_CONFIG[category]
     text = item.text.lower()
+    body = first_body_line(item.text).lower()
     heading_text = " > ".join(item.heading_path).lower()
     score = 0
     for pat in cfg["include"]:
-        if re.search(pat, text):
+        if re.search(pat, text) or re.search(pat, body):
             score += 2
     for pat in cfg.get("headingHints", []):
         if re.search(pat, heading_text):
@@ -243,16 +277,11 @@ def score_category(item: SourceLine, category: str) -> int:
     for pat in cfg.get("exclude", []):
         if re.search(pat, text):
             score -= 2
-    if item.text.startswith("#"):
-        score -= 1
     return score
 
 
 def classify_item(item: SourceLine) -> str | None:
-    norm = normalize_title(item.text)
-    if not norm or norm in GENERIC_TITLES:
-        return None
-    if len(norm) <= 2:
+    if is_low_value_item(item):
         return None
     best_category = None
     best_score = 0
@@ -261,7 +290,24 @@ def classify_item(item: SourceLine) -> str | None:
         if score > best_score or (score == best_score and score > 0 and best_category and CATEGORY_PRIORITY[category] > CATEGORY_PRIORITY[best_category]):
             best_category = category
             best_score = score
-    return best_category if best_score > 0 else None
+    if best_score <= 0:
+        return None
+    if is_low_value_item(item, best_category):
+        return None
+    return best_category
+
+
+def extract_section_title(item: SourceLine) -> str | None:
+    lines = [ln.strip() for ln in item.text.splitlines() if ln.strip()]
+    if not lines:
+        return None
+    if lines[0].startswith("#"):
+        level = len(lines[0]) - len(lines[0].lstrip("#"))
+        title = lines[0][level:].strip()
+        return title or None
+    if item.heading_path:
+        return item.heading_path[-1]
+    return None
 
 
 def collect_legacy(root: Path) -> tuple[dict[str, list[SourceLine]], list[str], list[tuple[str, str, str, int | None, str | None]]]:
@@ -276,14 +322,11 @@ def collect_legacy(root: Path) -> tuple[dict[str, list[SourceLine]], list[str], 
             category = classify_item(item)
             if category:
                 collected[category].append(item)
-        m = date_re.search(rel)
-        file_date = m.group(1) if m else "undated"
-        for idx, line in enumerate(path.read_text(errors="replace").splitlines(), start=1):
-            stripped = line.strip()
-            if stripped.startswith("## "):
-                title = redact(stripped[3:])
-                if normalize_title(title) not in GENERIC_TITLES:
-                    timeline.append((file_date, title, rel, idx, None))
+            title = extract_section_title(item)
+            if item.kind == "memory_line" and title and not is_generic_or_noise_title(title):
+                m = date_re.search(rel)
+                date_key = m.group(1) if m else "undated"
+                timeline.append((date_key, title, rel, item.line_no, None))
     return collected, sources, timeline
 
 
@@ -296,7 +339,6 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
     sources = [row.get("workspacePath") or row.get("uri") or row.get("id") for row in sources_rows]
     collected = {k: [] for k in CATEGORY_CONFIG}
     timeline: list[tuple[str, str, str, int | None, str | None]] = []
-    seen_timeline: set[tuple[str, str, str, int | None, str | None]] = set()
 
     for item in items_rows:
         text = redact(item.get("text", "").strip())
@@ -304,34 +346,26 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
             continue
         prov = item.get("provenance", {})
         rel = prov.get("path") or item.get("sourceId") or "unknown"
-        line_no = prov.get("lineStart") or 0
+        line_no = int(prov.get("lineStart") or 0)
         observed = item.get("observedAt")
         candidate = SourceLine(
             file=rel,
-            line_no=int(line_no),
+            line_no=line_no,
             text=text,
             evidence_id=item.get("id"),
             observed_at=observed,
             heading_path=list(prov.get("headingPath") or []),
+            kind=item.get("kind"),
         )
         category = classify_item(candidate)
         if category:
             collected[category].append(candidate)
-        if item.get("kind") in {"note_section", "memory_line"}:
-            heading_path = prov.get("headingPath") or []
-            title = None
-            if text.startswith("## "):
-                title = text[3:].strip()
-            elif heading_path:
-                title = heading_path[-1]
-            if title and normalize_title(title) not in GENERIC_TITLES:
+        if item.get("kind") == "note_section":
+            title = extract_section_title(candidate)
+            if title and not is_generic_or_noise_title(title):
                 date_key = observed[:10] if observed else "undated"
-                key = (date_key, title, rel, int(line_no) if line_no else None, item.get("id"))
-                if key not in seen_timeline:
-                    seen_timeline.add(key)
-                    timeline.append(key)
+                timeline.append((date_key, title, rel, line_no if line_no else None, item.get("id")))
 
-    timeline.sort()
     return collected, sources, timeline
 
 
@@ -339,14 +373,31 @@ def unique_lines(items: list[SourceLine], limit: int = 80) -> list[SourceLine]:
     seen: set[str] = set()
     out: list[SourceLine] = []
     for item in items:
-        key = item.text.lower()
-        if key in seen:
+        key = normalize_title(first_body_line(item.text))
+        if not key or key in seen:
             continue
         seen.add(key)
         out.append(item)
         if len(out) >= limit:
             break
     return out
+
+
+def dedupe_timeline(entries: list[tuple[str, str, str, int | None, str | None]]) -> list[tuple[str, str, str, int | None, str | None]]:
+    out: list[tuple[str, str, str, int | None, str | None]] = []
+    seen_same_day: set[tuple[str, str]] = set()
+    last_key = None
+    for date_key, title, rel, line_no, evidence_id in sorted(entries):
+        norm = normalize_title(title)
+        key = (date_key, norm)
+        if key == last_key:
+            continue
+        if key in seen_same_day:
+            continue
+        seen_same_day.add(key)
+        out.append((date_key, title, rel, line_no, evidence_id))
+        last_key = key
+    return out[:200]
 
 
 def evidence_refs(item: SourceLine) -> list[dict[str, Any]]:
@@ -369,12 +420,13 @@ def build_compiled_document(kind: str, entry_ids: list[str], sources: list[str],
 def build_compiled_entries(kind: str, items: list[SourceLine], document_id: str, generated_at: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for idx, item in enumerate(items, start=1):
-        entry_id = f"cmp:{ENTRY_TYPES[kind]}:{slugify(item.text)}-{idx:03d}"
+        title = summarize(first_body_line(item.text), 96)
+        entry_id = f"cmp:{ENTRY_TYPES[kind]}:{slugify(title)}-{idx:03d}"
         entry = {
             "id": entry_id,
             "documentId": document_id,
             "entryType": ENTRY_TYPES[kind],
-            "title": summarize(item.text, 96),
+            "title": title,
             "summary": summarize(item.text, 220),
             "state": "observed",
             "updatedAt": generated_at,
@@ -404,7 +456,7 @@ def build_compiled_entries(kind: str, items: list[SourceLine], document_id: str,
 
 def build_timeline_entries(entries: list[tuple[str, str, str, int | None, str | None]], generated_at: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
-    for idx, (date_key, title, rel, line_no, evidence_id) in enumerate(entries[:200], start=1):
+    for idx, (date_key, title, rel, line_no, evidence_id) in enumerate(entries, start=1):
         entry_id = f"cmp:timeline:{date_key}:{slugify(title)}-{idx:03d}"
         refs = [{"evidenceItemId": evidence_id}] if evidence_id else [{"evidenceItemId": f"legacy:{rel}:{line_no or 0}"}]
         entry = {
@@ -415,45 +467,43 @@ def build_timeline_entries(entries: list[tuple[str, str, str, int | None, str | 
             "summary": title,
             "state": "historical",
             "updatedAt": generated_at,
-            "observedAt": f"{date_key}T00:00:00Z" if re.match(r"20\d{2}-\d{2}-\d{2}", date_key) else None,
-            "lastConfirmedAt": f"{date_key}T00:00:00Z" if re.match(r"20\d{2}-\d{2}-\d{2}", date_key) else None,
             "tags": ["timeline", "compiled"],
             "facts": [],
             "relations": [],
             "evidenceRefs": refs,
-            "meta": {
-                "sourcePath": rel,
-                "lineNo": line_no,
-                "dateKey": date_key,
-            },
+            "meta": {"sourcePath": rel, "lineNo": line_no, "dateKey": date_key},
         }
-        out.append({k: v for k, v in entry.items() if v is not None})
+        if re.match(r"20\d{2}-\d{2}-\d{2}", date_key):
+            entry["observedAt"] = f"{date_key}T00:00:00Z"
+            entry["lastConfirmedAt"] = f"{date_key}T00:00:00Z"
+        out.append(entry)
     return out
 
 
-def write_category_markdown(path: Path, title: str, items: list[SourceLine], sources: list[str], mode: str, entries: list[dict[str, Any]]) -> None:
+def write_category_markdown(path: Path, title: str, entries: list[dict[str, Any]], sources: list[str], mode: str) -> None:
     lines = [
         f"# Compiled Memory — {title}",
         "",
         f"> Generated by `scripts/mneme_compile_memory.py` from **{mode}** input. Review before treating as truth.",
         "",
-        "## Candidate facts",
     ]
-    if items:
-        for item, entry in zip(items, entries):
-            lines.append(f"- {item.text}  ")
-            lines.append(f"  Source: `{item.file}:{item.line_no}`")
-            lines.append(f"  Entry: `{entry['id']}`")
-            if item.evidence_id:
-                lines.append(f"  Evidence: `{item.evidence_id}`")
+    if entries:
+        for entry in entries:
+            lines.append(f"## {entry['title']}")
+            lines.append("")
+            lines.append(entry['summary'])
+            lines.append("")
+            lines.append(f"- Entry: `{entry['id']}`")
+            lines.append(f"- State: `{entry['state']}`")
+            lines.append(f"- Facts: {len(entry.get('facts', []))}")
+            for fact in entry.get('facts', [])[:6]:
+                lines.append(f"  - {fact['value']}")
+            if len(entry.get('facts', [])) > 6:
+                lines.append(f"  - … {len(entry['facts']) - 6} more")
+            lines.append("")
     else:
-        lines.append("- No candidate facts found in this pass.")
-    lines.extend([
-        "",
-        "## Sources",
-        *[f"- `{s}`" for s in sources],
-        "",
-    ])
+        lines.extend(["## Candidate facts", "", "- No candidate facts found in this pass.", ""])
+    lines.extend(["## Sources", *[f"- `{s}`" for s in sources], ""])
     path.write_text("\n".join(lines))
 
 
@@ -466,7 +516,7 @@ def write_timeline_markdown(out_path: Path, entries: list[tuple[str, str, str, i
     ]
     if entries:
         current = None
-        for (date_key, title, rel, line_no, _evidence_id), entry in zip(entries[:200], timeline_entries):
+        for (date_key, title, rel, line_no, _evidence_id), entry in zip(entries, timeline_entries):
             if date_key != current:
                 lines.append(f"## {date_key}")
                 current = date_key
@@ -483,33 +533,13 @@ def write_timeline_markdown(out_path: Path, entries: list[tuple[str, str, str, i
 
 def build_report(out_dir: Path, sources: list[str], collected: dict[str, list[SourceLine]], mode: str, raw_dir: str | None, document_count: int, entry_count: int) -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    lines = [
-        "# Mneme Compile Report",
-        "",
-        f"Generated: {now}",
-        f"Mode: {mode}",
-    ]
+    lines = ["# Mneme Compile Report", "", f"Generated: {now}", f"Mode: {mode}"]
     if raw_dir:
         lines.append(f"Raw input: `{raw_dir}`")
-    lines.extend([
-        "",
-        "## Inputs",
-        *[f"- `{s}`" for s in sources],
-        "",
-        "## Candidate counts",
-    ])
+    lines.extend(["", "## Inputs", *[f"- `{s}`" for s in sources], "", "## Candidate counts"])
     for category, items in collected.items():
         lines.append(f"- {category}: {len(unique_lines(items))}")
-    lines.extend([
-        f"- documents: {document_count}",
-        f"- entries: {entry_count}",
-        "",
-        "## Notes",
-        "- This pass is deterministic and conservative.",
-        "- It preserves source references instead of pretending to know final truth.",
-        "- Review, trim, and promote before merging into long-term memory.",
-        "",
-    ])
+    lines.extend([f"- documents: {document_count}", f"- entries: {entry_count}", "", "## Notes", "- Heading-only lines are suppressed.", "- Low-value project noise is filtered.", "- Timeline events are deduplicated by day/title.", ""])
     (out_dir / "report.md").write_text("\n".join(lines))
 
 
@@ -538,28 +568,27 @@ def main() -> int:
         except FileNotFoundError:
             collected, sources, timeline = collect_legacy(root)
 
+    timeline = dedupe_timeline(timeline)
     generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
     documents: list[dict[str, Any]] = []
     entries_json: list[dict[str, Any]] = []
-
     for kind in ("projects", "systems", "decisions", "incidents"):
         uniq = unique_lines(collected[kind])
         doc_id = f"doc:compiled:{kind}"
         entries = build_compiled_entries(kind, uniq, doc_id, generated_at)
-        doc = build_compiled_document(kind, [e["id"] for e in entries], sources, generated_at)
-        documents.append(doc)
+        documents.append(build_compiled_document(kind, [e['id'] for e in entries], sources, generated_at))
         entries_json.extend(entries)
-        write_category_markdown(out_dir / f"{kind}.md", kind.title(), uniq, sources, mode, entries)
+        write_category_markdown(out_dir / f"{kind}.md", kind.title(), entries, sources, mode)
 
     timeline_entries = build_timeline_entries(timeline, generated_at)
-    documents.append(build_compiled_document("timeline", [e["id"] for e in timeline_entries], sources, generated_at))
+    documents.append(build_compiled_document("timeline", [e['id'] for e in timeline_entries], sources, generated_at))
     entries_json.extend(timeline_entries)
     write_timeline_markdown(out_dir / "timeline.md", timeline, sources, mode, timeline_entries)
 
     write_jsonl(out_dir / "documents.jsonl", documents)
     write_jsonl(out_dir / "entries.jsonl", entries_json)
     build_report(out_dir, sources, collected, mode, raw_dir, len(documents), len(entries_json))
-
     print(f"Compiled memory pack written to {out_dir} (mode={mode}, documents={len(documents)}, entries={len(entries_json)})")
     return 0
 

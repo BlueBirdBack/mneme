@@ -39,7 +39,10 @@ What it does in the first pass:
 - reads Mneme raw evidence (`raw/sources.jsonl`, `raw/items.jsonl`) when available
 - falls back to direct markdown parsing only as a legacy path
 - extracts candidate lines by simple deterministic rules
-- groups them into project/system/decision/incident buckets
+- filters heading-only entries out of compiled memory
+- suppresses low-value project noise such as TODOs, branch names, and commit-hash litter
+- groups lines into project/system/decision/incident buckets
+- deduplicates timeline events more aggressively
 - builds a timeline from evidence/source metadata
 - writes structured compiled JSONL
 - renders markdown views from the compiled layer
