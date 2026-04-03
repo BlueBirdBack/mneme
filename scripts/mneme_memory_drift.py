@@ -133,6 +133,8 @@ def stale_candidates(root: Path, stale_days: int) -> list[StaleCandidate]:
             if not line:
                 continue
             lower = line.lower()
+            if 'historical' in lower or 'superseded' in lower:
+                continue
             factish = line.startswith(("#", "-", "*")) or "todo" in lower or "pending" in lower or "current state" in lower
             if not factish:
                 continue
