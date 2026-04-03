@@ -21,28 +21,58 @@ from __future__ import annotations
 import argparse
 import json
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Any
+from typing import Any, Iterable
 
-CATEGORY_RULES = {
-    "projects": [
-        r"\bproject\b", r"\brepo\b", r"\bbranch\b", r"\bdeploy\b", r"\blive\b",
-        r"\bpath\b", r"\bworktree\b", r"\bfrontend\b", r"\bbackend\b", r"\bmap\b",
-    ],
-    "systems": [
-        r"\bhost\b", r"\bserver\b", r"\bssh\b", r"\bgateway\b", r"\bnats\b",
-        r"\bmemory\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bapi\b",
-    ],
-    "decisions": [
-        r"\bdecid", r"\bhard rule\b", r"\bdo not\b", r"\bmust\b", r"\bshould\b",
-        r"\bprefer\b", r"\brule\b", r"\bchosen\b", r"\blocked\b",
-    ],
-    "incidents": [
-        r"\bincident\b", r"\broot cause\b", r"\boutage\b", r"\bfailed\b", r"\bbroken\b",
-        r"\bcompromise\b", r"\bspike\b", r"\bcpu\b", r"\bram\b", r"\bfix\b",
-    ],
+CATEGORY_CONFIG = {
+    "projects": {
+        "include": [
+            r"\bproject\b", r"\brepo\b", r"\bbranch\b", r"\bdeploy\b", r"\bworktree\b",
+            r"\bcheckout\b", r"\bdemo\b", r"\bfrontend\b", r"\bbaseurl\b", r"\b/map\b",
+            r"\bgeo\b", r"\btruth layer\b",
+        ],
+        "exclude": [
+            r"\bnats\b", r"\bmysql\b", r"\bmqtt\b", r"\bssh\b", r"\bgateway\b",
+            r"\btoken\b", r"\bcert\b", r"\bservice(s)?\b", r"\bapi key\b", r"\bport\b",
+        ],
+        "headingHints": [r"active projects", r"durable project facts", r"bdeep", r"yibin", r"aqua", r"mneme"],
+    },
+    "systems": {
+        "include": [
+            r"\bhost\b", r"\bserver\b", r"\bssh\b", r"\bgateway\b", r"\bnats\b",
+            r"\bmemory\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bapi\b",
+            r"\bservice(s)?\b", r"\bwebsocket\b", r"\btunnel\b", r"\bcert\b", r"\bport\b",
+        ],
+        "exclude": [r"\bbounty\b", r"\bissue\b", r"\bdecision\b"],
+        "headingHints": [r"systems", r"infrastructure", r"key infrastructure", r"access", r"memory stack"],
+    },
+    "decisions": {
+        "include": [
+            r"\bdecision\b", r"\bhard rule\b", r"\bdo not\b", r"\bmust\b", r"\bshould\b",
+            r"\bprefer\b", r"\brule\b", r"\bchosen\b", r"\blocked\b", r"\bkeep\b",
+            r"\bprimary target\b", r"\bintentional\b", r"\barchitecture decision\b",
+        ],
+        "exclude": [r"\bissue\b", r"\boutage\b", r"\bfailed\b"],
+        "headingHints": [r"decisions", r"durable decisions", r"preferences", r"methods"],
+    },
+    "incidents": {
+        "include": [
+            r"\bincident\b", r"\broot cause\b", r"\boutage\b", r"\bfailed\b", r"\bbroken\b",
+            r"\bcompromise\b", r"\bspike\b", r"\bcpu\b", r"\bram\b", r"\bfix\b",
+            r"\balert\b", r"\battack\b", r"\bproblem\b",
+        ],
+        "exclude": [],
+        "headingHints": [r"incidents", r"warnings", r"supply chain"],
+    },
+}
+
+CATEGORY_PRIORITY = {
+    "incidents": 4,
+    "decisions": 3,
+    "systems": 2,
+    "projects": 1,
 }
 
 DOCUMENT_TITLES = {
@@ -77,6 +107,29 @@ IGNORE_MEMORY_FILES = {
     "timeline.md",
 }
 
+GENERIC_TITLES = {
+    "what happened",
+    "tools",
+    "tools set up",
+    "source",
+    "context",
+    "dependencies",
+    "shared config",
+    "technical notes",
+    "reminders",
+    "fleet reference",
+    "completed projects",
+    "pending",
+    "pending blocked",
+    "historical pending items at the time",
+    "durable project facts",
+    "active projects",
+    "durable decisions preferences",
+    "operational lessons",
+    "hard constraints",
+    "key infrastructure access",
+}
+
 
 @dataclass
 class SourceLine:
@@ -85,6 +138,7 @@ class SourceLine:
     text: str
     evidence_id: str | None = None
     observed_at: str | None = None
+    heading_path: list[str] = field(default_factory=list)
 
 
 def redact(text: str) -> str:
@@ -104,6 +158,12 @@ def slugify(text: str, limit: int = 48) -> str:
 def summarize(text: str, limit: int = 180) -> str:
     s = re.sub(r"^[#\-*\s]+", "", text).strip()
     return s if len(s) <= limit else s[: limit - 1].rstrip() + "…"
+
+
+def normalize_title(text: str) -> str:
+    s = summarize(text, 120).lower()
+    s = re.sub(r"[^a-z0-9]+", " ", s).strip()
+    return s
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -140,22 +200,72 @@ def source_files(root: Path) -> list[Path]:
     return files
 
 
+def heading_path_from_lines(lines: list[tuple[int, str]], current_index: int) -> list[str]:
+    path: list[tuple[int, str]] = []
+    for i, line in lines:
+        if i >= current_index:
+            break
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            level = len(stripped) - len(stripped.lstrip("#"))
+            title = stripped[level:].strip()
+            path = [x for x in path if x[0] < level]
+            path.append((level, title))
+    return [title for _level, title in path]
+
+
 def iter_candidate_lines(path: Path, root: Path) -> Iterable[SourceLine]:
-    for i, raw in enumerate(path.read_text(errors="replace").splitlines(), start=1):
+    lines = [(i, raw.rstrip()) for i, raw in enumerate(path.read_text(errors="replace").splitlines(), start=1)]
+    for i, raw in lines:
         line = raw.strip()
         if not line:
             continue
         if line.startswith("#") or line.startswith("-") or line.startswith("*"):
-            yield SourceLine(str(path.relative_to(root)), i, redact(line))
+            yield SourceLine(
+                file=str(path.relative_to(root)),
+                line_no=i,
+                text=redact(line),
+                heading_path=heading_path_from_lines(lines, i),
+            )
 
 
-def matches_any(text: str, patterns: list[str]) -> bool:
-    lower = text.lower()
-    return any(re.search(p, lower) for p in patterns)
+def score_category(item: SourceLine, category: str) -> int:
+    cfg = CATEGORY_CONFIG[category]
+    text = item.text.lower()
+    heading_text = " > ".join(item.heading_path).lower()
+    score = 0
+    for pat in cfg["include"]:
+        if re.search(pat, text):
+            score += 2
+    for pat in cfg.get("headingHints", []):
+        if re.search(pat, heading_text):
+            score += 1
+    for pat in cfg.get("exclude", []):
+        if re.search(pat, text):
+            score -= 2
+    if item.text.startswith("#"):
+        score -= 1
+    return score
+
+
+def classify_item(item: SourceLine) -> str | None:
+    norm = normalize_title(item.text)
+    if not norm or norm in GENERIC_TITLES:
+        return None
+    if len(norm) <= 2:
+        return None
+    best_category = None
+    best_score = 0
+    for category in CATEGORY_CONFIG:
+        score = score_category(item, category)
+        if score > best_score or (score == best_score and score > 0 and best_category and CATEGORY_PRIORITY[category] > CATEGORY_PRIORITY[best_category]):
+            best_category = category
+            best_score = score
+    return best_category if best_score > 0 else None
 
 
 def collect_legacy(root: Path) -> tuple[dict[str, list[SourceLine]], list[str], list[tuple[str, str, str, int | None, str | None]]]:
-    collected = {k: [] for k in CATEGORY_RULES}
+    collected = {k: [] for k in CATEGORY_CONFIG}
     files = source_files(root)
     sources = [str(p.relative_to(root)) for p in files]
     timeline: list[tuple[str, str, str, int | None, str | None]] = []
@@ -163,15 +273,17 @@ def collect_legacy(root: Path) -> tuple[dict[str, list[SourceLine]], list[str], 
     for path in files:
         rel = str(path.relative_to(root))
         for item in iter_candidate_lines(path, root):
-            for category, patterns in CATEGORY_RULES.items():
-                if matches_any(item.text, patterns):
-                    collected[category].append(item)
+            category = classify_item(item)
+            if category:
+                collected[category].append(item)
         m = date_re.search(rel)
         file_date = m.group(1) if m else "undated"
         for idx, line in enumerate(path.read_text(errors="replace").splitlines(), start=1):
             stripped = line.strip()
             if stripped.startswith("## "):
-                timeline.append((file_date, redact(stripped[3:]), rel, idx, None))
+                title = redact(stripped[3:])
+                if normalize_title(title) not in GENERIC_TITLES:
+                    timeline.append((file_date, title, rel, idx, None))
     return collected, sources, timeline
 
 
@@ -182,7 +294,7 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
         raise FileNotFoundError(f"Missing raw Mneme evidence in {raw_dir}")
 
     sources = [row.get("workspacePath") or row.get("uri") or row.get("id") for row in sources_rows]
-    collected = {k: [] for k in CATEGORY_RULES}
+    collected = {k: [] for k in CATEGORY_CONFIG}
     timeline: list[tuple[str, str, str, int | None, str | None]] = []
     seen_timeline: set[tuple[str, str, str, int | None, str | None]] = set()
 
@@ -194,10 +306,17 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
         rel = prov.get("path") or item.get("sourceId") or "unknown"
         line_no = prov.get("lineStart") or 0
         observed = item.get("observedAt")
-        candidate = SourceLine(rel, int(line_no), text, item.get("id"), observed)
-        for category, patterns in CATEGORY_RULES.items():
-            if matches_any(text, patterns):
-                collected[category].append(candidate)
+        candidate = SourceLine(
+            file=rel,
+            line_no=int(line_no),
+            text=text,
+            evidence_id=item.get("id"),
+            observed_at=observed,
+            heading_path=list(prov.get("headingPath") or []),
+        )
+        category = classify_item(candidate)
+        if category:
+            collected[category].append(candidate)
         if item.get("kind") in {"note_section", "memory_line"}:
             heading_path = prov.get("headingPath") or []
             title = None
@@ -205,7 +324,7 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
                 title = text[3:].strip()
             elif heading_path:
                 title = heading_path[-1]
-            if title:
+            if title and normalize_title(title) not in GENERIC_TITLES:
                 date_key = observed[:10] if observed else "undated"
                 key = (date_key, title, rel, int(line_no) if line_no else None, item.get("id"))
                 if key not in seen_timeline:
@@ -273,6 +392,7 @@ def build_compiled_entries(kind: str, items: list[SourceLine], document_id: str,
             "meta": {
                 "sourcePath": item.file,
                 "lineNo": item.line_no,
+                "headingPath": item.heading_path,
             },
         }
         if item.observed_at:
