@@ -34,6 +34,7 @@ The scrubber is useful, but daily automatic rewrite is too aggressive until fals
 So the current daily automation is:
 - check
 - drift
+- ingest
 - compile
 - no automatic scrub rewrite
 

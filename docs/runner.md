@@ -12,7 +12,8 @@ Runs the Mneme flow in one shot:
 1. memory health check
 2. secret scan (or scrub if `--apply-scrub` is used)
 3. drift detection
-4. compile pass
+4. ingest raw evidence
+5. compile from raw evidence
 
 ## Usage
 

@@ -34,10 +34,11 @@ Script:
 - `scripts/mneme_compile_memory.py`
 
 What it does in the first pass:
-- reads OpenClaw-style memory sources
+- reads Mneme raw evidence (`raw/sources.jsonl`, `raw/items.jsonl`) when available
+- falls back to direct markdown parsing only as a legacy path
 - extracts candidate lines by simple deterministic rules
 - groups them into project/system/decision/incident buckets
-- builds a timeline from dated note headings
+- builds a timeline from evidence/source metadata
 - writes a report with source counts
 
 What it does **not** do yet:
@@ -50,13 +51,13 @@ What it does **not** do yet:
 ## Usage
 
 ```bash
-./scripts/mneme_compile_memory.py --root /path/to/workspace --out /path/to/compiled
+./scripts/mneme_compile_memory.py --root /path/to/workspace --raw /path/to/raw --out /path/to/compiled
 ```
 
 Example for a local OpenClaw workspace:
 
 ```bash
-./scripts/mneme_compile_memory.py --root ~/.openclaw/workspace --out ./compiled
+./scripts/mneme_compile_memory.py --root ~/.openclaw/workspace --raw ./raw --out ./compiled
 ```
 
 ## Why this matters
