@@ -70,6 +70,10 @@ It should make that system more reliable and more usable.
 
 The first job is simple:
 
+> "I checked, but memory search is unavailable right now."
+
+That is the kind of failure Mneme exists to catch and fix.
+
 **fix recall, recover durable knowledge, and keep memory healthy over time.**
 
 ## V1 plan
