@@ -4,57 +4,98 @@
 >
 > It gives agents memory that persists, compounds, and can be trusted.
 
-Mneme turns raw evidence into durable, source-backed memory for agents.
+Mneme is a memory quality layer for OpenClaw.
+It does not replace OpenClaw memory. It repairs, audits, and improves it.
 
-## What it is
+## Goal
 
-Mneme is a memory engine for agents. It collects raw evidence from sessions, notes, documents, code, and other sources, then compiles that evidence into structured memory that can be retrieved, cited, maintained, and shared.
+**Make an agent's memory work, then make it better.**
 
-The first job is not “shared memory for everyone.” The first job is simpler and harder:
+For v1, that means starting with one agent — Six — and fixing the basic failure modes first:
 
-**restore an agent’s memory, make it trustworthy, and make it compound over time.**
+- broken recall
+- stale or missing indexes
+- important facts trapped in daily notes
+- duplicate or conflicting memory
+- memory that exists, but is hard to use
 
-Shared memory comes later, after the system can reliably distinguish evidence from inference, current truth from stale notes, and personal context from promoted knowledge.
+## What Mneme does
 
-## Why it exists
+Mneme v1 does four things:
 
-Agent memory is usually weak in exactly the ways that matter most:
+1. **Restore recall**
+   - detect broken memory config
+   - detect missing embedding backends
+   - detect stale or missing indexes
+   - verify that memory search actually works
 
-- important facts get trapped inside old sessions
-- decisions become hard to recover
-- notes drift away from source truth
-- context accumulates, but knowledge does not
+2. **Recover important memory**
+   - read `MEMORY.md`
+   - read daily memory files
+   - extract durable facts worth keeping
 
-Mneme exists to fix that.
+3. **Compile memory into usable structure**
+   - people
+   - projects
+   - systems
+   - decisions
+   - incidents
+   - todos
+   - timeline
 
-## Principles
+4. **Audit memory quality**
+   - duplicates
+   - contradictions
+   - stale facts
+   - facts trapped in daily notes that should be promoted
 
-- **Evidence first** — memory should be grounded in source material
-- **Durable by default** — useful work should survive the session
-- **Retrieval over wishful remembering** — important facts should be found, not guessed
-- **Citations where it counts** — memory should be inspectable and verifiable
-- **Maintenance matters** — stale, duplicate, and conflicting memory must be detectable
-- **Promotion is earned** — shared memory should come from verified local memory, not vibes
+## What Mneme is not
 
-## Initial scope
+Mneme v1 is not:
 
-Version 1 is focused on personal agent memory:
+- a new vector database
+- a replacement for OpenClaw builtin, QMD, or Honcho memory
+- cross-agent shared memory yet
+- silent autonomous rewriting of memory
+- a vague "AI memory" claim with no provenance
 
-1. ingest raw evidence
-2. compile it into structured memory
-3. retrieve it with citations and confidence markers
-4. detect contradictions, duplicates, and stale facts
-5. support deliberate promotion into shared memory later
+## Why this exists
 
-## Non-goals for v1
+OpenClaw already has real memory primitives: Markdown memory files, indexing, hybrid search, QMD, and Honcho.
 
-- universal cross-agent truth by default
-- hidden autonomous memory rewriting without auditability
-- replacing source documents with opaque summaries
-- pretending confidence is the same as correctness
+So Mneme should not try to replace the official memory system.
+It should make that system more reliable and more usable.
 
-## Status
+The first job is simple:
 
-Early repo. The shape is clear; the machinery comes next.
+**fix recall, recover durable knowledge, and keep memory healthy over time.**
 
-See [ROADMAP.md](./ROADMAP.md) for the first milestones and [docs/brand-copy.md](./docs/brand-copy.md) for positioning copy.
+## V1 plan
+
+### 1. Restore recall
+Get memory search healthy and verified.
+
+### 2. Recover durable memory
+Promote important facts out of existing notes.
+
+### 3. Compile memory
+Turn scattered notes into usable indexes.
+
+### 4. Keep memory healthy
+Surface stale, duplicate, and conflicting facts.
+
+## Success
+
+Mneme v1 is successful if:
+
+- Six can answer prior-context questions reliably
+- answers come from memory, not bluffing
+- important facts survive session resets
+- memory becomes easier to inspect and maintain
+- broken recall is caught before the user notices
+
+## Docs
+
+- [Mneme v1 Spec](./docs/spec-v1.md)
+- [Roadmap](./ROADMAP.md)
+- [Brand copy](./docs/brand-copy.md)
