@@ -120,6 +120,7 @@ Mneme now includes its first live check:
 
 - [Mneme v1 Spec](./docs/spec-v1.md)
 - [Evidence model](./docs/evidence-model.md)
+- [OpenClaw memory references](./docs/openclaw-memory-references.md)
 - [Ingest](./docs/ingest.md)
 - [Milestone 1 checklist](./docs/milestone-1-checklist.md)
 - [Memory check](./docs/memory-check.md)
