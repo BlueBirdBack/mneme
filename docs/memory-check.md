@@ -22,7 +22,7 @@ Script:
 ./scripts/mneme_memory_check.py
 ./scripts/mneme_memory_check.py --json
 ./scripts/mneme_memory_check.py --skip-query-checks
-./scripts/mneme_memory_check.py --query "Ash SSH port" --query "BDeep v2 deploy"
+./scripts/mneme_memory_check.py --query "project deploy details" --query "memory provider"
 ```
 
 ## Why it exists
