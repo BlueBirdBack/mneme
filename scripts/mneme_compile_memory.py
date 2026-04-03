@@ -166,6 +166,11 @@ def normalize_title(text: str) -> str:
     return s
 
 
+def is_heading_only(text: str) -> bool:
+    stripped = text.strip()
+    return stripped.startswith("#") and "\n" not in stripped
+
+
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if not path.exists():
@@ -249,6 +254,8 @@ def score_category(item: SourceLine, category: str) -> int:
 
 
 def classify_item(item: SourceLine) -> str | None:
+    if is_heading_only(item.text):
+        return None
     norm = normalize_title(item.text)
     if not norm or norm in GENERIC_TITLES:
         return None
