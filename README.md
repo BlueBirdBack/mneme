@@ -101,6 +101,7 @@ Mneme v1 is successful if:
 Mneme now includes its first live check:
 
 - [`scripts/mneme_memory_check.py`](./scripts/mneme_memory_check.py) — verify memory config, index health, embeddings readiness, and live recall
+- [`scripts/mneme_ingest_memory.py`](./scripts/mneme_ingest_memory.py) — ingest OpenClaw memory files into raw Mneme evidence JSONL
 - [`scripts/mneme_compile_memory.py`](./scripts/mneme_compile_memory.py) — generate a first-pass compiled memory pack from OpenClaw-style notes
 - [`scripts/mneme_secret_scrub.py`](./scripts/mneme_secret_scrub.py) — scan memory files for likely secrets and redact obvious raw tokens/passwords
 - [`scripts/mneme_memory_drift.py`](./scripts/mneme_memory_drift.py) — detect likely contradictions and stale facts in memory files
@@ -110,6 +111,7 @@ Mneme now includes its first live check:
 
 - [Mneme v1 Spec](./docs/spec-v1.md)
 - [Evidence model](./docs/evidence-model.md)
+- [Ingest](./docs/ingest.md)
 - [Milestone 1 checklist](./docs/milestone-1-checklist.md)
 - [Memory check](./docs/memory-check.md)
 - [Compiler](./docs/compiler.md)
