@@ -14,11 +14,11 @@ Goal: make Six's memory recall healthy, testable, and boringly reliable.
 - [x] Verify citations/source paths are available when needed
 
 ## Mneme checks to build
-- [ ] Detect broken provider configuration
-- [ ] Detect missing embedding dependencies
-- [ ] Detect stale or missing memory indexes
-- [ ] Run a basic recall test suite against live memory
-- [ ] Report clear failure reasons and suggested fixes
+- [x] Detect broken provider configuration
+- [x] Detect missing embedding dependencies
+- [x] Detect stale or missing memory indexes
+- [x] Run a basic recall test suite against live memory
+- [x] Report clear failure reasons and suggested fixes
 
 ## Exit criteria
 - [x] `openclaw memory status --deep` succeeds

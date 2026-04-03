@@ -96,8 +96,16 @@ Mneme v1 is successful if:
 - memory becomes easier to inspect and maintain
 - broken recall is caught before the user notices
 
+## First tool
+
+Mneme now includes its first live check:
+
+- [`scripts/mneme_memory_check.py`](./scripts/mneme_memory_check.py) — verify memory config, index health, embeddings readiness, and live recall
+
 ## Docs
 
 - [Mneme v1 Spec](./docs/spec-v1.md)
+- [Milestone 1 checklist](./docs/milestone-1-checklist.md)
+- [Memory check](./docs/memory-check.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
