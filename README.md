@@ -130,6 +130,7 @@ Mneme now includes its first live check:
 - [Agent-connected workflow](./docs/agent-connected.md)
 - [Build memory with agents](./docs/build-memory-with-agents.md)
 - [Runtime orchestration](./docs/runtime-orchestration.md)
+- [Continuation guide](./docs/continuation.md)
 - [Automation](./docs/automation.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)

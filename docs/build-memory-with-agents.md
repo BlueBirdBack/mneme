@@ -22,17 +22,15 @@ Mneme already provides the deterministic shell:
 - `scripts/mneme_materialize_candidates.py`
 - `scripts/mneme_llm_roundtrip.py`
 - `scripts/mneme_merge_pack.py`
+- `scripts/mneme_runtime_orchestrate.py`
 
-## Current runtime boundary
+## Current architecture
 
-The one thing the repo does **not** own by itself is the live agent dispatch step.
-That still depends on the OpenClaw runtime/tool layer.
-
-So the current architecture is:
-- repo scripts = ingest, prep, validate, materialize, merge
+The architecture is now split cleanly like this:
+- repo scripts = ingest, prep, validate, materialize, merge, runtime bridge
 - runtime tools = send bundle to agent, receive JSON back
 
-That is deliberate. It avoids pretending a standalone shell script can summon agents without the runtime.
+That is deliberate. It avoids pretending a standalone repo script can summon agents without the runtime.
 
 ## Category-by-category flow
 
@@ -80,13 +78,23 @@ The agent-connected loop has already been proven for:
 
 That is the first serious Mneme memory pack.
 
+## Proven runtime result
+
+The runtime bridge is also proven now:
+- prepare-task generated a real category task
+- the runtime dispatched it to an agent automatically
+- the agent returned candidate JSON
+- apply-result validated and materialized it
+- the reviewed pack merged successfully
+
+So Mneme has now proven both:
+- category-by-category agent compilation
+- automatic runtime dispatch through the bridge layer
+
 ## What remains
 
-To make this a one-command runtime flow, the next step is an OpenClaw-side wrapper that can:
-- choose a category bundle
-- dispatch it to an agent automatically
-- capture the JSON output
-- call validate/materialize automatically
-- optionally merge the reviewed pack
-
-That wrapper belongs at the runtime/tool layer, not in a fake standalone repo script.
+The next work is not basic capability. It is refinement:
+- multi-category automatic runs
+- result normalization to reduce manual cleanup
+- better merge quality and review summaries
+- a first-class runtime command for full Mneme compile jobs

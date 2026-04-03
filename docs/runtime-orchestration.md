@@ -2,7 +2,7 @@
 
 Mneme now has a runtime-side bridge script.
 
-It does not directly spawn agents by itself.
+It does not directly spawn agents by itself from inside the repo.
 Instead, it prepares a ready-to-send agent task and then applies the returned result.
 
 ## Script
@@ -57,19 +57,32 @@ This does:
 - materialize category output
 - optional merge into a reviewed pack
 
-## Intended runtime flow
+## Proven automatic-dispatch result
 
-1. `prepare-task`
-2. runtime sends `taskPrompt` to an agent
-3. agent returns JSON
-4. write that JSON to a candidate file
-5. `apply-result`
-6. optional merge pack
+The runtime seam has now been proven in a real automatic-dispatch flow:
+
+1. `prepare-task` generated a category task prompt
+2. the OpenClaw runtime dispatched that prompt to a real agent automatically
+3. the agent returned candidate JSON
+4. `apply-result` validated and materialized the result
+5. the reviewed pack was merged successfully
+
+This means the full runtime loop is now proven:
+
+**bundle -> agent -> validate -> materialize -> merge**
 
 ## Honest boundary
 
-This is the real boundary:
+This is still the real split:
 - **repo script** prepares and applies
 - **OpenClaw runtime** dispatches and receives
 
 That keeps the repo honest and the runtime first-class.
+
+## Next step
+
+The next improvement is not proof-of-concept anymore.
+It is productization:
+- make automatic dispatch reusable for any category
+- support multi-category runs
+- standardize result normalization so agent output shape stays consistent
