@@ -106,6 +106,7 @@ Mneme now includes its first live check:
 - [`scripts/mneme_secret_scrub.py`](./scripts/mneme_secret_scrub.py) — scan memory files for likely secrets and redact obvious raw tokens/passwords
 - [`scripts/mneme_memory_drift.py`](./scripts/mneme_memory_drift.py) — detect likely contradictions and stale facts in memory files
 - [`scripts/mneme_run.py`](./scripts/mneme_run.py) — run the Mneme maintenance flow in one command
+- [`scripts/mneme_llm_compile.py`](./scripts/mneme_llm_compile.py) — prepare/validate LLM-assisted compile passes against raw evidence
 
 ## Docs
 
@@ -119,6 +120,7 @@ Mneme now includes its first live check:
 - [Secret scrub](./docs/secret-scrub.md)
 - [Memory drift](./docs/memory-drift.md)
 - [Runner](./docs/runner.md)
+- [LLM compiler](./docs/llm-compiler.md)
 - [Automation](./docs/automation.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
