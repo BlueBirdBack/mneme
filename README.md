@@ -125,6 +125,7 @@ Mneme now includes its first live check:
 - [LLM compiler](./docs/llm-compiler.md)
 - [Candidate materialization](./docs/materialize-candidates.md)
 - [LLM roundtrip](./docs/llm-roundtrip.md)
+- [Agent-connected workflow](./docs/agent-connected.md)
 - [Automation](./docs/automation.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
