@@ -149,9 +149,10 @@ LOW_VALUE_PATTERNS = [
     re.compile(r"\bissue\s*#\d+\b", re.I),
     re.compile(r"sender_label|message_id|timestamp|untrusted metadata", re.I),
     re.compile(r"^(assistant|user):", re.I),
-    re.compile(r"conversation info", re.I),
+    re.compile(r"\bconversation info\b", re.I),
     re.compile(r"\[media attached:", re.I),
     re.compile(r"new session started", re.I),
+    re.compile(r"^```"),
 ]
 
 
@@ -180,8 +181,21 @@ def slugify(text: str, limit: int = 48) -> str:
     return s[:limit] or "entry"
 
 
+def clean_markdown_text(text: str) -> str:
+    s = text.strip()
+    s = re.sub(r"^#{1,6}\s+", "", s)
+    s = re.sub(r"^[-*+]\s+", "", s)
+    s = re.sub(r"^>\s+", "", s)
+    s = s.replace("```", " ")
+    s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
+    s = re.sub(r"__(.+?)__", r"\1", s)
+    s = re.sub(r"`([^`]+)`", r"\1", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
 def summarize(text: str, limit: int = 180) -> str:
-    s = re.sub(r"^[#\-*\s]+", "", text).strip()
+    s = clean_markdown_text(text)
     return s if len(s) <= limit else s[: limit - 1].rstrip() + "…"
 
 
@@ -260,12 +274,24 @@ def is_heading_only_text(text: str) -> bool:
     return len(lines) == 1
 
 
-def first_body_line(text: str) -> str:
+def body_lines(text: str) -> list[str]:
+    out: list[str] = []
     for ln in text.splitlines():
         s = ln.strip()
-        if s and not s.startswith("#"):
-            return s
-    return text.splitlines()[0].strip() if text.splitlines() else text.strip()
+        if not s or s.startswith("#") or s.startswith("```"):
+            continue
+        cleaned = clean_markdown_text(s)
+        if cleaned:
+            out.append(cleaned)
+    return out
+
+
+def first_body_line(text: str) -> str:
+    lines = body_lines(text)
+    if lines:
+        return lines[0]
+    cleaned = clean_markdown_text(text)
+    return cleaned
 
 
 def is_generic_or_noise_title(text: str) -> bool:
@@ -288,6 +314,8 @@ def is_low_value_item(item: SourceLine, category: str | None = None) -> bool:
     if not text:
         return True
     if is_heading_only_text(text):
+        return True
+    if item.kind == "note_section" and not body_lines(text):
         return True
     body = first_body_line(text)
     if is_generic_or_noise_title(body):
@@ -468,17 +496,52 @@ def build_compiled_document(kind: str, entry_ids: list[str], sources: list[str],
     }
 
 
+def heading_context(item: SourceLine) -> str | None:
+    for heading in reversed(item.heading_path):
+        cleaned = summarize(heading, 80)
+        if cleaned and not is_generic_or_noise_title(cleaned):
+            return cleaned
+    return None
+
+
+def title_for_item(item: SourceLine) -> str:
+    if item.kind == "note_section":
+        section_title = extract_section_title(item)
+        if section_title and not is_generic_or_noise_title(section_title):
+            return summarize(section_title, 96)
+
+    line = first_body_line(item.text)
+    match = re.match(r"^([^:：]{1,48})[:：]\s+(.+)$", line)
+    if match:
+        label = summarize(match.group(1), 48)
+        if label and not is_generic_or_noise_title(label):
+            context = heading_context(item)
+            if context and normalize_title(context) != normalize_title(label):
+                return summarize(f"{context} — {label}", 96)
+            return summarize(label, 96)
+
+    return summarize(line, 96)
+
+
+def summary_for_item(item: SourceLine) -> str:
+    lines = body_lines(item.text)
+    if not lines:
+        return summarize(item.text, 220)
+    joined = " ".join(lines)
+    return summarize(joined, 220)
+
+
 def build_compiled_entries(kind: str, items: list[SourceLine], document_id: str, generated_at: str) -> list[dict[str, Any]]:
     out: list[dict[str, Any]] = []
     for idx, item in enumerate(items, start=1):
-        title = summarize(first_body_line(item.text), 96)
+        title = title_for_item(item)
         entry_id = f"cmp:{ENTRY_TYPES[kind]}:{slugify(title)}-{idx:03d}"
         entry = {
             "id": entry_id,
             "documentId": document_id,
             "entryType": ENTRY_TYPES[kind],
             "title": title,
-            "summary": summarize(item.text, 220),
+            "summary": summary_for_item(item),
             "state": "observed",
             "updatedAt": generated_at,
             "tags": [kind.rstrip("s"), "compiled"],
