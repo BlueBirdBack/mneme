@@ -8,6 +8,11 @@ Primary input:
 Legacy fallback:
 - direct markdown parsing from MEMORY.md + memory/*.md
 
+Outputs:
+- compiled/documents.jsonl
+- compiled/entries.jsonl
+- rendered markdown views
+
 The output is a starting point for human/agent review, not final truth.
 """
 
@@ -40,6 +45,22 @@ CATEGORY_RULES = {
     ],
 }
 
+DOCUMENT_TITLES = {
+    "projects": "Compiled Projects",
+    "systems": "Compiled Systems",
+    "decisions": "Compiled Decisions",
+    "incidents": "Compiled Incidents",
+    "timeline": "Compiled Timeline",
+}
+
+ENTRY_TYPES = {
+    "projects": "project",
+    "systems": "system",
+    "decisions": "decision",
+    "incidents": "incident",
+    "timeline": "timeline_event",
+}
+
 SECRET_PATTERNS = [
     (re.compile(r"ghp_[A-Za-z0-9_]+"), "ghp_[REDACTED]"),
     (re.compile(r"(token\s*[:=]\s*)([^\s,`]+)", re.I), r"\1[REDACTED]"),
@@ -63,6 +84,7 @@ class SourceLine:
     line_no: int
     text: str
     evidence_id: str | None = None
+    observed_at: str | None = None
 
 
 def redact(text: str) -> str:
@@ -70,6 +92,18 @@ def redact(text: str) -> str:
     for pattern, repl in SECRET_PATTERNS:
         out = pattern.sub(repl, out)
     return out
+
+
+def slugify(text: str, limit: int = 48) -> str:
+    s = text.lower()
+    s = re.sub(r"[`*_#\[\](){}:;,.!?]+", " ", s)
+    s = re.sub(r"[^a-z0-9]+", "-", s).strip("-")
+    return s[:limit] or "entry"
+
+
+def summarize(text: str, limit: int = 180) -> str:
+    s = re.sub(r"^[#\-*\s]+", "", text).strip()
+    return s if len(s) <= limit else s[: limit - 1].rstrip() + "…"
 
 
 def load_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -82,6 +116,12 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
             continue
         rows.append(json.loads(line))
     return rows
+
+
+def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
+    with path.open("w", encoding="utf-8") as f:
+        for row in rows:
+            f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
 def source_files(root: Path) -> list[Path]:
@@ -114,11 +154,11 @@ def matches_any(text: str, patterns: list[str]) -> bool:
     return any(re.search(p, lower) for p in patterns)
 
 
-def collect_legacy(root: Path) -> tuple[dict[str, list[SourceLine]], list[str], list[tuple[str, str, str]]]:
+def collect_legacy(root: Path) -> tuple[dict[str, list[SourceLine]], list[str], list[tuple[str, str, str, int | None, str | None]]]:
     collected = {k: [] for k in CATEGORY_RULES}
     files = source_files(root)
     sources = [str(p.relative_to(root)) for p in files]
-    timeline: list[tuple[str, str, str]] = []
+    timeline: list[tuple[str, str, str, int | None, str | None]] = []
     date_re = re.compile(r"(20\d{2}-\d{2}-\d{2})")
     for path in files:
         rel = str(path.relative_to(root))
@@ -128,14 +168,14 @@ def collect_legacy(root: Path) -> tuple[dict[str, list[SourceLine]], list[str], 
                     collected[category].append(item)
         m = date_re.search(rel)
         file_date = m.group(1) if m else "undated"
-        for line in path.read_text(errors="replace").splitlines():
+        for idx, line in enumerate(path.read_text(errors="replace").splitlines(), start=1):
             stripped = line.strip()
             if stripped.startswith("## "):
-                timeline.append((file_date, redact(stripped[3:]), rel))
+                timeline.append((file_date, redact(stripped[3:]), rel, idx, None))
     return collected, sources, timeline
 
 
-def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[str], list[tuple[str, str, str]]]:
+def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[str], list[tuple[str, str, str, int | None, str | None]]]:
     sources_rows = load_jsonl(raw_dir / "sources.jsonl")
     items_rows = load_jsonl(raw_dir / "items.jsonl")
     if not sources_rows or not items_rows:
@@ -143,8 +183,8 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
 
     sources = [row.get("workspacePath") or row.get("uri") or row.get("id") for row in sources_rows]
     collected = {k: [] for k in CATEGORY_RULES}
-    timeline: list[tuple[str, str, str]] = []
-    seen_timeline: set[tuple[str, str, str]] = set()
+    timeline: list[tuple[str, str, str, int | None, str | None]] = []
+    seen_timeline: set[tuple[str, str, str, int | None, str | None]] = set()
 
     for item in items_rows:
         text = redact(item.get("text", "").strip())
@@ -153,7 +193,8 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
         prov = item.get("provenance", {})
         rel = prov.get("path") or item.get("sourceId") or "unknown"
         line_no = prov.get("lineStart") or 0
-        candidate = SourceLine(rel, int(line_no), text, item.get("id"))
+        observed = item.get("observedAt")
+        candidate = SourceLine(rel, int(line_no), text, item.get("id"), observed)
         for category, patterns in CATEGORY_RULES.items():
             if matches_any(text, patterns):
                 collected[category].append(candidate)
@@ -165,9 +206,8 @@ def collect_from_raw(raw_dir: Path) -> tuple[dict[str, list[SourceLine]], list[s
             elif heading_path:
                 title = heading_path[-1]
             if title:
-                observed = item.get("observedAt", "")
                 date_key = observed[:10] if observed else "undated"
-                key = (date_key, title, rel)
+                key = (date_key, title, rel, int(line_no) if line_no else None, item.get("id"))
                 if key not in seen_timeline:
                     seen_timeline.add(key)
                     timeline.append(key)
@@ -190,7 +230,88 @@ def unique_lines(items: list[SourceLine], limit: int = 80) -> list[SourceLine]:
     return out
 
 
-def write_category(path: Path, title: str, items: list[SourceLine], sources: list[str], mode: str) -> None:
+def evidence_refs(item: SourceLine) -> list[dict[str, Any]]:
+    if item.evidence_id:
+        return [{"evidenceItemId": item.evidence_id}]
+    return [{"evidenceItemId": f"legacy:{item.file}:{item.line_no}"}]
+
+
+def build_compiled_document(kind: str, entry_ids: list[str], sources: list[str], generated_at: str) -> dict[str, Any]:
+    return {
+        "id": f"doc:compiled:{kind}",
+        "kind": kind,
+        "title": DOCUMENT_TITLES[kind],
+        "generatedAt": generated_at,
+        "entryIds": entry_ids,
+        "sourceIds": sources,
+    }
+
+
+def build_compiled_entries(kind: str, items: list[SourceLine], document_id: str, generated_at: str) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for idx, item in enumerate(items, start=1):
+        entry_id = f"cmp:{ENTRY_TYPES[kind]}:{slugify(item.text)}-{idx:03d}"
+        entry = {
+            "id": entry_id,
+            "documentId": document_id,
+            "entryType": ENTRY_TYPES[kind],
+            "title": summarize(item.text, 96),
+            "summary": summarize(item.text, 220),
+            "state": "observed",
+            "updatedAt": generated_at,
+            "tags": [kind.rstrip("s"), "compiled"],
+            "facts": [
+                {
+                    "key": "sourceLine",
+                    "value": item.text,
+                    "state": "observed",
+                    "evidenceRefs": evidence_refs(item),
+                }
+            ],
+            "relations": [],
+            "evidenceRefs": evidence_refs(item),
+            "meta": {
+                "sourcePath": item.file,
+                "lineNo": item.line_no,
+            },
+        }
+        if item.observed_at:
+            entry["observedAt"] = item.observed_at
+            entry["lastConfirmedAt"] = item.observed_at
+        out.append(entry)
+    return out
+
+
+def build_timeline_entries(entries: list[tuple[str, str, str, int | None, str | None]], generated_at: str) -> list[dict[str, Any]]:
+    out: list[dict[str, Any]] = []
+    for idx, (date_key, title, rel, line_no, evidence_id) in enumerate(entries[:200], start=1):
+        entry_id = f"cmp:timeline:{date_key}:{slugify(title)}-{idx:03d}"
+        refs = [{"evidenceItemId": evidence_id}] if evidence_id else [{"evidenceItemId": f"legacy:{rel}:{line_no or 0}"}]
+        entry = {
+            "id": entry_id,
+            "documentId": "doc:compiled:timeline",
+            "entryType": "timeline_event",
+            "title": title,
+            "summary": title,
+            "state": "historical",
+            "updatedAt": generated_at,
+            "observedAt": f"{date_key}T00:00:00Z" if re.match(r"20\d{2}-\d{2}-\d{2}", date_key) else None,
+            "lastConfirmedAt": f"{date_key}T00:00:00Z" if re.match(r"20\d{2}-\d{2}-\d{2}", date_key) else None,
+            "tags": ["timeline", "compiled"],
+            "facts": [],
+            "relations": [],
+            "evidenceRefs": refs,
+            "meta": {
+                "sourcePath": rel,
+                "lineNo": line_no,
+                "dateKey": date_key,
+            },
+        }
+        out.append({k: v for k, v in entry.items() if v is not None})
+    return out
+
+
+def write_category_markdown(path: Path, title: str, items: list[SourceLine], sources: list[str], mode: str, entries: list[dict[str, Any]]) -> None:
     lines = [
         f"# Compiled Memory — {title}",
         "",
@@ -199,9 +320,10 @@ def write_category(path: Path, title: str, items: list[SourceLine], sources: lis
         "## Candidate facts",
     ]
     if items:
-        for item in items:
+        for item, entry in zip(items, entries):
             lines.append(f"- {item.text}  ")
             lines.append(f"  Source: `{item.file}:{item.line_no}`")
+            lines.append(f"  Entry: `{entry['id']}`")
             if item.evidence_id:
                 lines.append(f"  Evidence: `{item.evidence_id}`")
     else:
@@ -215,7 +337,7 @@ def write_category(path: Path, title: str, items: list[SourceLine], sources: lis
     path.write_text("\n".join(lines))
 
 
-def build_timeline(out_path: Path, entries: list[tuple[str, str, str]], sources: list[str], mode: str) -> None:
+def write_timeline_markdown(out_path: Path, entries: list[tuple[str, str, str, int | None, str | None]], sources: list[str], mode: str, timeline_entries: list[dict[str, Any]]) -> None:
     lines = [
         "# Compiled Memory — Timeline",
         "",
@@ -224,19 +346,22 @@ def build_timeline(out_path: Path, entries: list[tuple[str, str, str]], sources:
     ]
     if entries:
         current = None
-        for date, title, rel in entries[:200]:
-            if date != current:
-                lines.append(f"## {date}")
-                current = date
+        for (date_key, title, rel, line_no, _evidence_id), entry in zip(entries[:200], timeline_entries):
+            if date_key != current:
+                lines.append(f"## {date_key}")
+                current = date_key
             lines.append(f"- {title}  ")
             lines.append(f"  Source: `{rel}`")
+            lines.append(f"  Entry: `{entry['id']}`")
+            if line_no:
+                lines.append(f"  Line: `{line_no}`")
     else:
         lines.append("- No timeline entries found.")
     lines.extend(["", "## Sources", *[f"- `{s}`" for s in sources], ""])
     out_path.write_text("\n".join(lines))
 
 
-def build_report(out_dir: Path, sources: list[str], collected: dict[str, list[SourceLine]], mode: str, raw_dir: str | None) -> None:
+def build_report(out_dir: Path, sources: list[str], collected: dict[str, list[SourceLine]], mode: str, raw_dir: str | None, document_count: int, entry_count: int) -> None:
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     lines = [
         "# Mneme Compile Report",
@@ -256,6 +381,8 @@ def build_report(out_dir: Path, sources: list[str], collected: dict[str, list[So
     for category, items in collected.items():
         lines.append(f"- {category}: {len(unique_lines(items))}")
     lines.extend([
+        f"- documents: {document_count}",
+        f"- entries: {entry_count}",
         "",
         "## Notes",
         "- This pass is deterministic and conservative.",
@@ -291,14 +418,29 @@ def main() -> int:
         except FileNotFoundError:
             collected, sources, timeline = collect_legacy(root)
 
-    write_category(out_dir / "projects.md", "Projects", unique_lines(collected["projects"]), sources, mode)
-    write_category(out_dir / "systems.md", "Systems", unique_lines(collected["systems"]), sources, mode)
-    write_category(out_dir / "decisions.md", "Decisions", unique_lines(collected["decisions"]), sources, mode)
-    write_category(out_dir / "incidents.md", "Incidents", unique_lines(collected["incidents"]), sources, mode)
-    build_timeline(out_dir / "timeline.md", timeline, sources, mode)
-    build_report(out_dir, sources, collected, mode, raw_dir)
+    generated_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    documents: list[dict[str, Any]] = []
+    entries_json: list[dict[str, Any]] = []
 
-    print(f"Compiled memory pack written to {out_dir} (mode={mode})")
+    for kind in ("projects", "systems", "decisions", "incidents"):
+        uniq = unique_lines(collected[kind])
+        doc_id = f"doc:compiled:{kind}"
+        entries = build_compiled_entries(kind, uniq, doc_id, generated_at)
+        doc = build_compiled_document(kind, [e["id"] for e in entries], sources, generated_at)
+        documents.append(doc)
+        entries_json.extend(entries)
+        write_category_markdown(out_dir / f"{kind}.md", kind.title(), uniq, sources, mode, entries)
+
+    timeline_entries = build_timeline_entries(timeline, generated_at)
+    documents.append(build_compiled_document("timeline", [e["id"] for e in timeline_entries], sources, generated_at))
+    entries_json.extend(timeline_entries)
+    write_timeline_markdown(out_dir / "timeline.md", timeline, sources, mode, timeline_entries)
+
+    write_jsonl(out_dir / "documents.jsonl", documents)
+    write_jsonl(out_dir / "entries.jsonl", entries_json)
+    build_report(out_dir, sources, collected, mode, raw_dir, len(documents), len(entries_json))
+
+    print(f"Compiled memory pack written to {out_dir} (mode={mode}, documents={len(documents)}, entries={len(entries_json)})")
     return 0
 
 

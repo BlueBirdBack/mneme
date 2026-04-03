@@ -280,6 +280,15 @@ The extra fields are there so later compiler passes can rank or annotate support
 
 ---
 
+
+## Current implementation note
+
+The current compiler implementation now emits both:
+- structured JSONL (`documents.jsonl`, `entries.jsonl`)
+- rendered markdown views (`projects.md`, `systems.md`, etc.)
+
+That keeps the compiled layer machine-usable and agent-readable at the same time.
+
 ## v1 markdown rendering
 
 Mneme can store structured JSON internally and still render markdown for agent readability.

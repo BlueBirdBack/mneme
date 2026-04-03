@@ -13,6 +13,8 @@ Take this:
 - `memory/*.md`
 
 And produce this:
+- `compiled/documents.jsonl`
+- `compiled/entries.jsonl`
 - `compiled/projects.md`
 - `compiled/systems.md`
 - `compiled/decisions.md`
@@ -39,6 +41,8 @@ What it does in the first pass:
 - extracts candidate lines by simple deterministic rules
 - groups them into project/system/decision/incident buckets
 - builds a timeline from evidence/source metadata
+- writes structured compiled JSONL
+- renders markdown views from the compiled layer
 - writes a report with source counts
 
 What it does **not** do yet:
