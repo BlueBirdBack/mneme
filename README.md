@@ -101,11 +101,13 @@ Mneme v1 is successful if:
 Mneme now includes its first live check:
 
 - [`scripts/mneme_memory_check.py`](./scripts/mneme_memory_check.py) — verify memory config, index health, embeddings readiness, and live recall
+- [`scripts/mneme_compile_memory.py`](./scripts/mneme_compile_memory.py) — generate a first-pass compiled memory pack from OpenClaw-style notes
 
 ## Docs
 
 - [Mneme v1 Spec](./docs/spec-v1.md)
 - [Milestone 1 checklist](./docs/milestone-1-checklist.md)
 - [Memory check](./docs/memory-check.md)
+- [Compiler](./docs/compiler.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
