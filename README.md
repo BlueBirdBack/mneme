@@ -11,6 +11,8 @@ It does not replace OpenClaw memory. It repairs, audits, and improves it.
 
 **Make an agent's memory work, then make it better.**
 
+Mneme starts with **Six**.
+
 For v1, that means starting with one agent — Six — and fixing the basic failure modes first:
 
 - broken recall
