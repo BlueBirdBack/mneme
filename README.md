@@ -108,6 +108,7 @@ Mneme now includes its first live check:
 - [`scripts/mneme_run.py`](./scripts/mneme_run.py) — run the Mneme maintenance flow in one command
 - [`scripts/mneme_llm_compile.py`](./scripts/mneme_llm_compile.py) — prepare/validate LLM-assisted compile passes against raw evidence
 - [`scripts/mneme_materialize_candidates.py`](./scripts/mneme_materialize_candidates.py) — turn validated LLM candidate entries into compiled outputs
+- [`scripts/mneme_llm_roundtrip.py`](./scripts/mneme_llm_roundtrip.py) — run the end-to-end LLM-assisted compile loop for one category
 
 ## Docs
 
@@ -123,6 +124,7 @@ Mneme now includes its first live check:
 - [Runner](./docs/runner.md)
 - [LLM compiler](./docs/llm-compiler.md)
 - [Candidate materialization](./docs/materialize-candidates.md)
+- [LLM roundtrip](./docs/llm-roundtrip.md)
 - [Automation](./docs/automation.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
