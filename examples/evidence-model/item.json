@@ -1,0 +1,21 @@
+{
+  "id": "evi:daily-note:2026-04-03:48-52:sha256:example",
+  "sourceId": "src:daily-note:2026-04-03:sha256:example",
+  "kind": "note_bullet",
+  "text": "- The current memory problem was operational: the recall provider was set to local while local embeddings were unavailable.",
+  "capturedAt": "2026-04-03T12:00:00Z",
+  "observedAt": "2026-04-03T10:45:00Z",
+  "tags": ["memory", "incident"],
+  "secretRedacted": false,
+  "provenance": {
+    "path": "memory/2026-04-03.md",
+    "locatorType": "line_range",
+    "lineStart": 48,
+    "lineEnd": 52
+  },
+  "actor": {
+    "id": "six",
+    "display": "Six",
+    "role": "agent"
+  }
+}

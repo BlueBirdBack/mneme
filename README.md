@@ -109,6 +109,7 @@ Mneme now includes its first live check:
 ## Docs
 
 - [Mneme v1 Spec](./docs/spec-v1.md)
+- [Evidence model](./docs/evidence-model.md)
 - [Milestone 1 checklist](./docs/milestone-1-checklist.md)
 - [Memory check](./docs/memory-check.md)
 - [Compiler](./docs/compiler.md)

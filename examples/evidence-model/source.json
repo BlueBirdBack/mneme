@@ -1,0 +1,10 @@
+{
+  "id": "src:daily-note:2026-04-03:sha256:example",
+  "sourceType": "daily_note",
+  "uri": "file:///workspace/memory/2026-04-03.md",
+  "workspacePath": "memory/2026-04-03.md",
+  "title": "Daily memory note",
+  "capturedAt": "2026-04-03T12:00:00Z",
+  "contentHash": "sha256:example",
+  "mimeType": "text/markdown"
+}
