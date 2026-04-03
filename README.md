@@ -115,5 +115,6 @@ Mneme now includes its first live check:
 - [Secret scrub](./docs/secret-scrub.md)
 - [Memory drift](./docs/memory-drift.md)
 - [Runner](./docs/runner.md)
+- [Automation](./docs/automation.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
