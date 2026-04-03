@@ -20,7 +20,7 @@ Prepare bundles for one category:
 
 ```bash
 ./scripts/mneme_llm_roundtrip.py \
-  --root ~/.openclaw/workspace \
+  --root /path/to/workspace \
   --category projects \
   --json
 ```
@@ -29,7 +29,7 @@ Run the full loop with a candidate file:
 
 ```bash
 ./scripts/mneme_llm_roundtrip.py \
-  --root ~/.openclaw/workspace \
+  --root /path/to/workspace \
   --category projects \
   --candidate ./candidate-projects.json \
   --json

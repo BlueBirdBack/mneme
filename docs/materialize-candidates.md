@@ -16,7 +16,7 @@ After an LLM produces candidate compiled entries and Mneme validates them, a det
 ./scripts/mneme_materialize_candidates.py \
   --category projects \
   --input ./candidate-projects.json \
-  --out /tmp/mneme-materialized-projects
+  --out /path/to/output/materialized-projects
 ```
 
 ## What it writes

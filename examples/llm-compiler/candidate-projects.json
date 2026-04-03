@@ -1,23 +1,23 @@
 {
   "entries": [
     {
-      "title": "bdeep v2",
-      "summary": "Active fish-monitoring project with curated truth expected to come from PostgreSQL 18 rather than raw receiver rows.",
+      "title": "Project Alpha",
+      "summary": "Active example project with a curated truth layer instead of raw event rows.",
       "state": "observed",
-      "tags": ["project", "bdeep"],
+      "tags": ["project", "example"],
       "facts": [
         {
           "key": "truthLayer",
-          "value": "curated PostgreSQL 18",
+          "value": "curated relational store",
           "state": "observed",
           "evidenceRefs": [
-            { "evidenceItemId": "evi:note_bullet:2026-04-03.md:1-1:sha256:example" }
+            { "evidenceItemId": "evi:note_bullet:memory/example-projects.md:12-12:sha256:example002" }
           ]
         }
       ],
       "relations": [],
       "evidenceRefs": [
-        { "evidenceItemId": "evi:note_bullet:2026-04-03.md:1-1:sha256:example" }
+        { "evidenceItemId": "evi:note_bullet:memory/example-projects.md:12-12:sha256:example002" }
       ]
     }
   ]

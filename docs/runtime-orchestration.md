@@ -30,7 +30,7 @@ This script is that seam.
 
 ```bash
 ./scripts/mneme_runtime_orchestrate.py prepare-task \
-  --root ~/.openclaw/workspace \
+  --root /path/to/workspace \
   --category projects
 ```
 
@@ -47,9 +47,9 @@ The OpenClaw runtime can take `taskPrompt` and send it to an agent.
 ```bash
 ./scripts/mneme_runtime_orchestrate.py apply-result \
   --category projects \
-  --raw-out /tmp/mneme-runtime-raw \
+  --raw-out /path/to/output/raw \
   --candidate ./candidate-projects.json \
-  --materialize-out /tmp/mneme-runtime-materialized-projects
+  --materialize-out /path/to/output/materialized-projects
 ```
 
 This does:

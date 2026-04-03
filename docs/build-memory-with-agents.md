@@ -38,7 +38,7 @@ That is deliberate. It avoids pretending a standalone repo script can summon age
 
 ```bash
 ./scripts/mneme_llm_roundtrip.py \
-  --root ~/.openclaw/workspace \
+  --root /path/to/workspace \
   --category projects \
   --json
 ```
@@ -50,22 +50,22 @@ Use the prepared bundle as input to an agent and ask for candidate JSON only.
 
 ```bash
 ./scripts/mneme_llm_compile.py validate \
-  --raw /tmp/mneme-llm-raw \
+  --raw /path/to/output/raw \
   --input ./candidate-projects.json
 
 ./scripts/mneme_materialize_candidates.py \
   --category projects \
   --input ./candidate-projects.json \
-  --out /tmp/mneme-materialized-projects
+  --out /path/to/output/materialized-projects
 ```
 
 ### 4. Merge reviewed categories
 
 ```bash
 ./scripts/mneme_merge_pack.py \
-  --inputs /tmp/mneme-materialized-projects /tmp/mneme-materialized-systems \
-           /tmp/mneme-materialized-decisions /tmp/mneme-materialized-incidents \
-  --out /tmp/mneme-reviewed-pack
+  --inputs /path/to/output/materialized-projects /path/to/output/materialized-systems \
+           /path/to/output/materialized-decisions /path/to/output/materialized-incidents \
+  --out /path/to/output/reviewed-pack
 ```
 
 ## Proven categories so far

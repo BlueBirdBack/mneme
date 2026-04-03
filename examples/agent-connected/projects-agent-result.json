@@ -1,22 +1,22 @@
 [
   {
     "title": "active project roster",
-    "summary": "The active project roster includes pos2, yibin-demo-4, yibin-tdoa, bdeep v2, aqua-cq, and 湖南紧急救援物资管理平台.",
+    "summary": "The active project roster includes Project Alpha, Project Beta, and Project Gamma.",
     "state": "observed",
     "tags": ["projects", "index", "active"],
     "facts": [
       {
         "key": "roster",
-        "value": "pos2, yibin-demo-4, yibin-tdoa, bdeep v2, aqua-cq, 湖南紧急救援物资管理平台",
+        "value": "Project Alpha, Project Beta, Project Gamma",
         "state": "observed",
         "evidenceRefs": [
-          { "evidenceItemId": "evi:note_section:MEMORY.md:39-47:sha256:faf5081cb04f" }
+          { "evidenceItemId": "evi:note_section:memory/example-projects.md:10-16:sha256:example001" }
         ]
       }
     ],
     "relations": [],
     "evidenceRefs": [
-      { "evidenceItemId": "evi:note_section:MEMORY.md:39-47:sha256:faf5081cb04f" }
+      { "evidenceItemId": "evi:note_section:memory/example-projects.md:10-16:sha256:example001" }
     ]
   }
 ]

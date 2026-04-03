@@ -2,24 +2,24 @@
 
 Mneme is meant to become routine maintenance, not a one-off rescue project.
 
-## Current live automation
+## Current automation pattern
 
-A daily OpenClaw cron is configured locally for Six.
+A local scheduler can run Mneme on a daily cadence.
 
-### Schedule
-- **9:15 AM**
-- **Timezone:** `Asia/Shanghai`
+### Example schedule
+- once per day
+- in the user's local timezone
 
 ### Purpose
 Run the Mneme maintenance flow and stay quiet unless something needs attention.
 
-### Current behavior
-The daily run uses the stable local repo path:
+### Example behavior
+A typical run can use the stable local repo path and the Mneme runner:
 
 ```bash
-/home/openclaw/.openclaw/workspace/mneme/scripts/mneme_run.py \
-  --root /home/openclaw/.openclaw/workspace \
-  --out /tmp/mneme-cron-pack \
+/path/to/mneme/scripts/mneme_run.py \
+  --root /path/to/workspace \
+  --out /path/to/output/compiled \
   --skip-scrub \
   --json
 ```
@@ -28,10 +28,10 @@ Interpretation rule:
 - if memory check is healthy and drift is clean, say nothing
 - if recall breaks, contradictions appear, or stale items appear, report only the deltas/problems
 
-## Why `--skip-scrub` is used right now
+## Why `--skip-scrub` is used by default
 The scrubber is useful, but daily automatic rewrite is too aggressive until false positives are tightened further.
 
-So the current daily automation is:
+So a conservative daily automation pattern is:
 - check
 - drift
 - ingest
@@ -39,7 +39,7 @@ So the current daily automation is:
 - no automatic scrub rewrite
 
 ## Local state vs repo state
-The cron job itself lives in the local OpenClaw scheduler, not in git.
+The scheduler job itself lives in the local runtime, not in git.
 
 The repo documents:
 - intended automation behavior
@@ -47,7 +47,7 @@ The repo documents:
 - expected schedule pattern
 
 The local runtime holds:
-- actual cron registration
+- actual job registration
 - delivery target
 - session binding
 

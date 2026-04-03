@@ -1,21 +1,21 @@
 {
-  "id": "evi:daily-note:2026-04-03:48-52:sha256:example",
-  "sourceId": "src:daily-note:2026-04-03:sha256:example",
-  "kind": "note_bullet",
-  "text": "- The current memory problem was operational: the recall provider was set to local while local embeddings were unavailable.",
-  "capturedAt": "2026-04-03T12:00:00Z",
-  "observedAt": "2026-04-03T10:45:00Z",
-  "tags": ["memory", "incident"],
+  "id": "evi:memory:MEMORY.md:20-24:sha256:def456",
+  "sourceId": "src:memory:MEMORY.md:sha256:abc123",
+  "kind": "memory_line",
+  "text": "- Memory search was repaired by switching from an unavailable local embedding path to a working remote embedding provider.",
+  "capturedAt": "2026-04-03T11:30:00Z",
+  "observedAt": "2026-04-03T00:00:00Z",
+  "tags": ["memory", "infra"],
   "secretRedacted": false,
   "provenance": {
-    "path": "memory/2026-04-03.md",
+    "path": "MEMORY.md",
     "locatorType": "line_range",
-    "lineStart": 48,
-    "lineEnd": 52
+    "lineStart": 7,
+    "lineEnd": 7
   },
   "actor": {
-    "id": "six",
-    "display": "Six",
+    "id": "agent-example",
+    "display": "Example Agent",
     "role": "agent"
   }
 }

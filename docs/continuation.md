@@ -22,23 +22,23 @@ The first serious reviewed pack has already been proven across:
 - `decisions`
 - `incidents`
 
-## Stable paths
+## Stable assumptions
 
 Repo:
-- `/home/openclaw/.openclaw/workspace/mneme`
+- `/path/to/mneme`
 
 Workspace root:
-- `/home/openclaw/.openclaw/workspace`
+- `/path/to/workspace`
 
-Do **not** depend on old `/tmp` paths being present tomorrow. Regenerate fresh outputs.
+Do **not** depend on old temporary output directories still existing on the next day. Regenerate fresh outputs.
 
-## How to continue tomorrow
+## How to continue
 
-### 1. Verify Mneme baseline
+### 1. Verify the Mneme baseline
 
 ```bash
-cd /home/openclaw/.openclaw/workspace/mneme
-./scripts/mneme_run.py --root /home/openclaw/.openclaw/workspace --skip-scrub --json
+cd /path/to/mneme
+./scripts/mneme_run.py --root /path/to/workspace --skip-scrub --json
 ```
 
 Expected baseline:
@@ -49,12 +49,12 @@ Expected baseline:
 
 ```bash
 ./scripts/mneme_runtime_orchestrate.py prepare-task \
-  --root /home/openclaw/.openclaw/workspace \
+  --root /path/to/workspace \
   --category projects \
   --max-items 25 \
-  --raw-out /tmp/mneme-next-raw \
-  --bundles-out /tmp/mneme-next-bundles \
-  --materialize-out /tmp/mneme-next-materialized-projects
+  --raw-out /path/to/output/raw \
+  --bundles-out /path/to/output/bundles \
+  --materialize-out /path/to/output/materialized-projects
 ```
 
 ### 3. Dispatch through the runtime
@@ -65,18 +65,18 @@ Use the produced `taskPrompt` with an OpenClaw agent/sub-agent.
 ```bash
 ./scripts/mneme_runtime_orchestrate.py apply-result \
   --category projects \
-  --raw-out /tmp/mneme-next-raw \
+  --raw-out /path/to/output/raw \
   --candidate /path/to/candidate-projects.json \
-  --materialize-out /tmp/mneme-next-materialized-projects
+  --materialize-out /path/to/output/materialized-projects
 ```
 
 ### 5. Merge reviewed categories when ready
 
 ```bash
 ./scripts/mneme_merge_pack.py \
-  --inputs /tmp/mneme-next-materialized-projects /tmp/mneme-next-materialized-systems \
-           /tmp/mneme-next-materialized-decisions /tmp/mneme-next-materialized-incidents \
-  --out /tmp/mneme-next-reviewed-pack
+  --inputs /path/to/output/materialized-projects /path/to/output/materialized-systems \
+           /path/to/output/materialized-decisions /path/to/output/materialized-incidents \
+  --out /path/to/output/reviewed-pack
 ```
 
 ## Highest-value next work
