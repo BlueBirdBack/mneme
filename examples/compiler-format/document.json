@@ -1,0 +1,12 @@
+{
+  "id": "doc:compiled:systems",
+  "kind": "systems",
+  "title": "Compiled Systems",
+  "generatedAt": "2026-04-03T13:30:00Z",
+  "entryIds": [
+    "cmp:system:openclaw-memory-stack"
+  ],
+  "sourceIds": [
+    "src:memory:MEMORY.md:sha256:example"
+  ]
+}

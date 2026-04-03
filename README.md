@@ -113,6 +113,7 @@ Mneme now includes its first live check:
 - [Milestone 1 checklist](./docs/milestone-1-checklist.md)
 - [Memory check](./docs/memory-check.md)
 - [Compiler](./docs/compiler.md)
+- [Compiler format](./docs/compiler-format.md)
 - [Secret scrub](./docs/secret-scrub.md)
 - [Memory drift](./docs/memory-drift.md)
 - [Runner](./docs/runner.md)

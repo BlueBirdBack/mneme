@@ -1,0 +1,29 @@
+{
+  "id": "cmp:system:openclaw-memory-stack",
+  "documentId": "doc:compiled:systems",
+  "entryType": "system",
+  "title": "OpenClaw memory stack",
+  "summary": "Semantic recall was restored by switching from broken local embeddings to Gemini embeddings.",
+  "state": "observed",
+  "updatedAt": "2026-04-03T13:30:00Z",
+  "lastConfirmedAt": "2026-04-03T11:00:00Z",
+  "tags": ["memory", "system", "openclaw"],
+  "facts": [
+    {
+      "key": "provider",
+      "value": "gemini",
+      "state": "observed",
+      "evidenceRefs": [
+        {
+          "evidenceItemId": "evi:memory:MEMORY.md:7:sha256:example"
+        }
+      ]
+    }
+  ],
+  "relations": [],
+  "evidenceRefs": [
+    {
+      "evidenceItemId": "evi:memory:MEMORY.md:7:sha256:example"
+    }
+  ]
+}
