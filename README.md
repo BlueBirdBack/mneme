@@ -109,6 +109,7 @@ Mneme now includes its first live check:
 - [`scripts/mneme_llm_compile.py`](./scripts/mneme_llm_compile.py) — prepare/validate LLM-assisted compile passes against raw evidence
 - [`scripts/mneme_materialize_candidates.py`](./scripts/mneme_materialize_candidates.py) — turn validated LLM candidate entries into compiled outputs
 - [`scripts/mneme_llm_roundtrip.py`](./scripts/mneme_llm_roundtrip.py) — run the end-to-end LLM-assisted compile loop for one category
+- [`scripts/mneme_merge_pack.py`](./scripts/mneme_merge_pack.py) — merge reviewed category outputs into one compiled pack
 
 ## Docs
 
@@ -126,6 +127,7 @@ Mneme now includes its first live check:
 - [Candidate materialization](./docs/materialize-candidates.md)
 - [LLM roundtrip](./docs/llm-roundtrip.md)
 - [Agent-connected workflow](./docs/agent-connected.md)
+- [Build memory with agents](./docs/build-memory-with-agents.md)
 - [Automation](./docs/automation.md)
 - [Roadmap](./ROADMAP.md)
 - [Brand copy](./docs/brand-copy.md)
