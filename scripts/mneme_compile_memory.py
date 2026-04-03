@@ -68,7 +68,8 @@ CATEGORY_CONFIG = {
         ],
         "exclude": [
             r"\boutage\b", r"\bfailed\b", r"\bmysql\b", r"\bmqtt\b", r"\bssh port\b",
-            r"\bhost\b\s*:\s*`?\d", r"\bserver\b\s*is\s*\d",
+            r"\bhost\b\s*:\s*`?\d", r"\bserver\b\s*is\s*\d", r"\bcommit\b", r"\bmedia attached\b",
+            r"\bpending\b",
         ],
         "headingHints": [r"decisions", r"preferences", r"methods", r"hard constraints"],
     },
@@ -79,18 +80,20 @@ CATEGORY_CONFIG = {
             r"\brecovered\b", r"\bdelay\b", r"\bgarbl(ed|ing)\b", r"\bbug\b",
             r"\bmemory search\b.*\bunavailable\b", r"\bwrong path\b",
         ],
-        "exclude": [r"\bprefer left alignment\b", r"\bproof summaries\b"],
+        "exclude": [r"\bprefer left alignment\b", r"\bproof summaries\b", r"\bcommit\b", r"\bpending\b", r"\bhistorical\b"],
         "headingHints": [r"incidents", r"warnings", r"alert", r"postmortem"],
     },
     "people": {
         "include": [
             r"\bname\b", r"\bwhat to call\b", r"\bpronouns?\b", r"\btimezone\b", r"\bvibe\b",
-            r"\bcreature\b", r"\bemoji\b", r"\bavatar\b", r"\bb3\b", r"\bbruce bell\b",
+            r"\bcreature\b", r"\bemoji\b", r"\bavatar\b", r"\bbruce bell\b",
             r"\buser\b.*\bname\b", r"\bcall them\b", r"\bprefers\b.*\breplies\b",
+            r"\bfrontend architect\b", r"\bhust\b", r"\bsoftware\b",
         ],
         "exclude": [
             r"\bproject\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bnats\b",
-            r"\bservice(s)?\b", r"\bdeploy\b", r"\bincident\b",
+            r"\bservice(s)?\b", r"\bdeploy\b", r"\bincident\b", r"\bhost\b", r"\bssh\b",
+            r"\bgateway\b", r"\bmemory search\b", r"\bsudo\b", r"\bmodel\b", r"\bcreds?\b",
         ],
         "headingHints": [r"identity", r"user", r"people", r"profile"],
     },
@@ -145,6 +148,10 @@ LOW_VALUE_PATTERNS = [
     re.compile(r"\bPR\s*#\d+\b", re.I),
     re.compile(r"\bissue\s*#\d+\b", re.I),
     re.compile(r"sender_label|message_id|timestamp|untrusted metadata", re.I),
+    re.compile(r"^(assistant|user):", re.I),
+    re.compile(r"conversation info", re.I),
+    re.compile(r"\[media attached:", re.I),
+    re.compile(r"new session started", re.I),
 ]
 
 
@@ -272,7 +279,7 @@ def is_generic_or_noise_title(text: str) -> bool:
     return False
 
 
-def is_low_value_project_noise(text: str) -> bool:
+def is_low_value_noise(text: str) -> bool:
     return any(p.search(text) for p in LOW_VALUE_PATTERNS)
 
 
@@ -285,20 +292,20 @@ def is_low_value_item(item: SourceLine, category: str | None = None) -> bool:
     body = first_body_line(text)
     if is_generic_or_noise_title(body):
         return True
-    if category == "projects" and is_low_value_project_noise(text):
+    if is_low_value_noise(text):
         return True
     return False
 
 
-def heading_bucket(item: SourceLine) -> str | None:
+def heading_bucket(item: SourceLine) -> tuple[str | None, int]:
     heading_text = " > ".join(item.heading_path).lower()
     best = None
     score = 0
     for category, pats in HEADING_BUCKET_HINTS.items():
-        s = sum(2 for pat in pats if re.search(pat, heading_text))
+        s = sum(1 for pat in pats if re.search(pat, heading_text))
         if s > score:
             best, score = category, s
-    return best if score >= 2 else None
+    return best, score
 
 
 def score_category(item: SourceLine, category: str) -> int:
@@ -313,6 +320,9 @@ def score_category(item: SourceLine, category: str) -> int:
     for pat in cfg.get("headingHints", []):
         if re.search(pat, heading_text):
             score += 1
+    hinted_category, hinted_score = heading_bucket(item)
+    if hinted_category == category and hinted_score > 0:
+        score += min(hinted_score, 2)
     for pat in cfg.get("exclude", []):
         if re.search(pat, text) or re.search(pat, body):
             score -= 2
@@ -322,18 +332,19 @@ def score_category(item: SourceLine, category: str) -> int:
 def classify_item(item: SourceLine) -> str | None:
     if is_low_value_item(item):
         return None
-    forced = heading_bucket(item)
-    if forced and not is_low_value_item(item, forced):
-        return forced
+    scores: dict[str, int] = {category: score_category(item, category) for category in CATEGORY_CONFIG}
     best_category = None
     best_score = 0
-    for category in CATEGORY_CONFIG:
-        score = score_category(item, category)
+    for category, score in scores.items():
         if score > best_score or (score == best_score and score > 0 and best_category and CATEGORY_PRIORITY[category] > CATEGORY_PRIORITY[best_category]):
             best_category = category
             best_score = score
     if best_score <= 0:
         return None
+    if best_category == "people" and best_score < 3:
+        return None
+    if best_category in {"incidents", "decisions"} and scores.get("projects", 0) >= best_score and scores.get("projects", 0) > 0:
+        best_category = "projects"
     if is_low_value_item(item, best_category):
         return None
     return best_category
