@@ -145,7 +145,7 @@ def main() -> int:
 
     p1 = sub.add_parser("prepare-task")
     p1.add_argument("--root", default=".")
-    p1.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents"])
+    p1.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents", "people", "timeline"])
     p1.add_argument("--bundle-index", type=int, default=0)
     p1.add_argument("--max-items", type=int, default=60)
     p1.add_argument("--raw-out", default="/tmp/mneme-runtime-raw")
@@ -153,7 +153,7 @@ def main() -> int:
     p1.add_argument("--materialize-out", default="/tmp/mneme-runtime-materialized")
 
     p2 = sub.add_parser("apply-result")
-    p2.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents"])
+    p2.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents", "people", "timeline"])
     p2.add_argument("--raw-out", required=True)
     p2.add_argument("--candidate", required=True)
     p2.add_argument("--materialize-out", required=True)

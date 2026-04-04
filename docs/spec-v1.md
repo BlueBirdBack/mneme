@@ -64,6 +64,8 @@ Initial compiled artifacts:
 - `compiled/decisions.md`
 - `compiled/incidents.md`
 - `compiled/timeline.md`
+
+Planned next artifact:
 - `compiled/todos.md`
 
 Requirement:
@@ -129,8 +131,9 @@ Success means:
 
 ### Milestone 3: Compiled memory exists
 Success means:
-- people, project, system, decision, incident, timeline, and todo views exist
+- people, project, system, decision, incident, and timeline views exist
 - they are easier to use than raw note grep
+- todo views are clearly marked as planned until implemented
 
 ### Milestone 4: Memory hygiene exists
 Success means:

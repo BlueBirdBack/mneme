@@ -83,6 +83,7 @@ That keeps the repo honest and the runtime first-class.
 
 The next improvement is not proof-of-concept anymore.
 It is productization:
-- make automatic dispatch reusable for any category
+- make automatic dispatch reusable for any supported category (`projects`, `systems`, `decisions`, `incidents`, `people`, `timeline`)
 - support multi-category runs
+- add `todos` only when the compiler/materializer support is real instead of implied
 - standardize result normalization so agent output shape stays consistent

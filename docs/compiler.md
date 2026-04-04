@@ -30,6 +30,7 @@ And produce this:
 - treat output as candidate memory, not final truth
 - prefer concise durable facts over session sludge
 - do not commit private compiled memory packs to the public repo by default
+- do not commit raw evidence packs (`raw/`) to the public repo by default
 
 ## First implementation
 

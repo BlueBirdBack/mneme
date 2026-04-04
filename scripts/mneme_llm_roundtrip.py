@@ -35,7 +35,7 @@ def main() -> int:
     ap.add_argument("--root", default=".", help="Workspace root")
     ap.add_argument("--raw-out", default="/tmp/mneme-llm-raw", help="Raw evidence output dir")
     ap.add_argument("--bundles-out", default="/tmp/mneme-llm-bundles", help="Prepared bundle output dir")
-    ap.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents"], help="Category to focus on")
+    ap.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents", "people", "timeline"], help="Category to focus on")
     ap.add_argument("--max-items", type=int, default=60, help="Max evidence items per bundle")
     ap.add_argument("--candidate", help="Optional candidate JSON to validate/materialize")
     ap.add_argument("--materialize-out", default="/tmp/mneme-llm-materialized", help="Materialized output dir when --candidate is used")

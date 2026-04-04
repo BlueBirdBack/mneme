@@ -42,8 +42,8 @@ Mneme v1 does four things:
    - systems
    - decisions
    - incidents
-   - todos
    - timeline
+   - todos (planned, not implemented yet)
 
 4. **Audit memory quality**
    - duplicates
@@ -116,6 +116,27 @@ Mneme now includes its first live check:
 - [`scripts/mneme_merge_pack.py`](./scripts/mneme_merge_pack.py) — merge reviewed category outputs into one compiled pack
 - [`scripts/mneme_runtime_orchestrate.py`](./scripts/mneme_runtime_orchestrate.py) — prepare/apply the runtime agent-dispatch seam for Mneme compile runs
 - [`scripts/mneme_runtime_batch.py`](./scripts/mneme_runtime_batch.py) — prepare/apply multi-category runtime compile runs
+
+## Repo hygiene
+
+Treat these as transient local artifacts by default:
+- `raw/`
+- `compiled/`
+
+If you need sample data in the repo, keep it tiny and sanitized under `examples/` instead of committing private memory evidence.
+
+## Tests
+
+Run the smoke tests with:
+
+```bash
+python -m unittest discover -s tests -p 'test_*.py'
+```
+
+These cover three boring-but-important paths:
+- ingest a tiny fixture workspace
+- compile fixture raw evidence into outputs
+- prepare a runtime task for the `people` category
 
 ## Docs
 

@@ -66,14 +66,17 @@ Represents one compiled memory artifact.
 |
 ### `kind` values for v1
 
+Currently implemented:
 - `projects`
 - `systems`
 - `decisions`
 - `incidents`
 - `timeline`
 - `people`
-- `todos`
 - `report`
+
+Planned, not implemented yet:
+- `todos`
 
 ---
 

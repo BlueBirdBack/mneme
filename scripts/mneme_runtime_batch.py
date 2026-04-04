@@ -18,7 +18,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent
 ORCH = ROOT / "mneme_runtime_orchestrate.py"
 
-DEFAULT_CATEGORIES = ["projects", "systems", "decisions", "incidents"]
+DEFAULT_CATEGORIES = ["projects", "systems", "decisions", "incidents", "people", "timeline"]
 
 
 def run_json(cmd: list[str], ok_codes: tuple[int, ...] = (0,)) -> dict[str, Any]:

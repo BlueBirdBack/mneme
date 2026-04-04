@@ -16,7 +16,7 @@ Runs this flow:
 
 ## Usage
 
-Prepare bundles for one category:
+Prepare bundles for one category (currently: projects, systems, decisions, incidents, people, timeline):
 
 ```bash
 ./scripts/mneme_llm_roundtrip.py \

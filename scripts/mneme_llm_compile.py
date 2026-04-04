@@ -55,9 +55,30 @@ CATEGORY_CONFIG = {
         "exclude": [],
         "headingHints": [r"incidents", r"warnings", r"supply chain"],
     },
+    "people": {
+        "include": [
+            r"\bname\b", r"\bwhat to call\b", r"\bpronouns?\b", r"\btimezone\b", r"\bvibe\b",
+            r"\bcreature\b", r"\bemoji\b", r"\bavatar\b", r"\bbruce bell\b",
+            r"\buser\b.*\bname\b", r"\bcall them\b", r"\bprefers\b.*\breplies\b",
+        ],
+        "exclude": [
+            r"\bproject\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bnats\b",
+            r"\bservice(s)?\b", r"\bdeploy\b", r"\bincident\b", r"\bhost\b", r"\bssh\b",
+            r"\bgateway\b", r"\bmemory search\b", r"\bcreds?\b",
+        ],
+        "headingHints": [r"identity", r"user", r"people", r"profile"],
+    },
+    "timeline": {
+        "include": [
+            r"\b2026-\d{2}-\d{2}\b", r"\b202\d/\d{1,2}/\d{1,2}\b", r"\btoday\b", r"\byesterday\b",
+            r"\bcreated\b", r"\bfixed\b", r"\bdeployed\b", r"\brestored\b", r"\bscheduled\b",
+        ],
+        "exclude": [],
+        "headingHints": [r"timeline", r"incidents", r"warnings"],
+    },
 }
 
-CATEGORY_PRIORITY = {"incidents": 4, "decisions": 3, "systems": 2, "projects": 1}
+CATEGORY_PRIORITY = {"incidents": 6, "decisions": 5, "systems": 4, "projects": 3, "people": 2, "timeline": 1}
 VALID_STATES = {"observed", "inferred", "stale", "contradicted", "historical"}
 
 SYSTEM_PROMPT = """You are compiling Mneme candidate memory entries from raw evidence.
@@ -139,7 +160,7 @@ def prepare(raw_dir: Path, out_dir: Path, max_items: int) -> dict[str, Any]:
         category_items = sorted(
             grouped[category],
             key=lambda x: (
-                x.get("observedAt") or "",
+                x.get("observedAt") or x.get("capturedAt") or "",
                 (x.get("provenance") or {}).get("path") or "",
                 (x.get("provenance") or {}).get("lineStart") or 0,
             ),
@@ -186,7 +207,7 @@ def prepare(raw_dir: Path, out_dir: Path, max_items: int) -> dict[str, Any]:
                     {
                         "id": item["id"],
                         "text": item.get("text"),
-                        "observedAt": item.get("observedAt"),
+                        "observedAt": item.get("observedAt") or item.get("capturedAt"),
                         "kind": item.get("kind"),
                         "provenance": item.get("provenance"),
                     }

@@ -15,6 +15,7 @@ DOCUMENT_TITLES = {
     "systems": "Compiled Systems",
     "decisions": "Compiled Decisions",
     "incidents": "Compiled Incidents",
+    "people": "Compiled People",
     "timeline": "Compiled Timeline",
 }
 
@@ -23,6 +24,7 @@ ENTRY_TYPES = {
     "systems": "system",
     "decisions": "decision",
     "incidents": "incident",
+    "people": "person",
     "timeline": "timeline_event",
 }
 
