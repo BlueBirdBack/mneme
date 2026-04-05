@@ -29,6 +29,12 @@ def run_json(cmd: list[str], ok_codes: tuple[int, ...] = (0,)) -> dict[str, Any]
 
 
 def prepare_batch(args: argparse.Namespace) -> dict[str, Any]:
+    if not args.allow_agent_export:
+        raise RuntimeError(
+            "Refusing to prepare batch agent export tasks without explicit consent. "
+            "Re-run with --allow-agent-export if you intend to send Mneme evidence off-box via an agent/runtime."
+        )
+
     root = str(Path(args.root).expanduser().resolve())
     base_out = Path(args.out).expanduser().resolve()
     base_out.mkdir(parents=True, exist_ok=True)
@@ -49,6 +55,7 @@ def prepare_batch(args: argparse.Namespace) -> dict[str, Any]:
             "--raw-out", str(raw_out),
             "--bundles-out", str(bundles_out),
             "--materialize-out", str(materialize_out),
+            "--allow-agent-export",
         ])
         task_file = base_out / f"task-{category}.json"
         task_file.write_text(json.dumps(result, ensure_ascii=False, indent=2))
@@ -123,6 +130,11 @@ def main() -> int:
     p1.add_argument("--categories", nargs="*", choices=DEFAULT_CATEGORIES)
     p1.add_argument("--bundle-index", type=int, default=0)
     p1.add_argument("--max-items", type=int, default=25)
+    p1.add_argument(
+        "--allow-agent-export",
+        action="store_true",
+        help="Acknowledge that prepared taskPrompt files may be sent off-box via an agent/runtime.",
+    )
 
     p2 = sub.add_parser("apply-batch")
     p2.add_argument("--manifest", required=True)

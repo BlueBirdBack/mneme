@@ -31,7 +31,8 @@ This script is that seam.
 ```bash
 ./scripts/mneme_runtime_orchestrate.py prepare-task \
   --root /path/to/workspace \
-  --category projects
+  --category projects \
+  --allow-agent-export
 ```
 
 This outputs JSON containing:
@@ -39,6 +40,8 @@ This outputs JSON containing:
 - raw/bundle/materialize paths
 - a fully assembled `taskPrompt`
 - summary of the underlying roundtrip prep
+
+You must pass `--allow-agent-export` explicitly because `taskPrompt` may be sent off-box by the runtime.
 
 The OpenClaw runtime can take `taskPrompt` and send it to an agent.
 

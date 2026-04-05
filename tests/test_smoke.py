@@ -81,6 +81,7 @@ class MnemeSmokeTests(unittest.TestCase):
             '--raw-out', str(raw_out),
             '--bundles-out', str(bundles_out),
             '--materialize-out', str(materialize_out),
+            '--allow-agent-export',
         ])
         self.assertEqual(data['category'], 'people')
         self.assertEqual(data['bundleMeta']['category'], 'people')

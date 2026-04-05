@@ -65,9 +65,18 @@ def build_task_prompt(category: str, bundle_payload: dict[str, Any]) -> str:
 
 
 def cmd_prepare_task(args: argparse.Namespace) -> int:
-    root = str(Path(args.root).expanduser().resolve())
-    raw_out = str(Path(args.raw_out).expanduser().resolve())
-    bundles_out = str(Path(args.bundles_out).expanduser().resolve())
+    root_path = Path(args.root).expanduser().resolve()
+    root = str(root_path)
+    runtime_base = root_path / ".mneme-runtime"
+    raw_out = str(Path(args.raw_out).expanduser().resolve()) if args.raw_out else str((runtime_base / "raw").resolve())
+    bundles_out = str(Path(args.bundles_out).expanduser().resolve()) if args.bundles_out else str((runtime_base / "bundles").resolve())
+
+    if not args.allow_agent_export:
+        raise RuntimeError(
+            "Refusing to prepare an agent export task without explicit consent. "
+            "Re-run with --allow-agent-export if you intend to send Mneme evidence off-box via an agent/runtime."
+        )
+
     summary = run_json([
         str(TOOLS["roundtrip"]),
         "--root", root,
@@ -84,13 +93,18 @@ def cmd_prepare_task(args: argparse.Namespace) -> int:
     bundle_file = Path(bundles_out) / bundle_meta["file"]
     bundle_payload = load_json(bundle_file)
     task_prompt = build_task_prompt(args.category, bundle_payload)
+    materialize_out = (
+        str(Path(args.materialize_out).expanduser().resolve())
+        if args.materialize_out
+        else str((runtime_base / "materialized" / args.category).resolve())
+    )
     out = {
         "category": args.category,
         "bundleIndex": args.bundle_index,
         "bundleFile": str(bundle_file),
         "rawOut": raw_out,
         "bundlesOut": bundles_out,
-        "materializeOut": str(Path(args.materialize_out).expanduser().resolve()),
+        "materializeOut": materialize_out,
         "taskPrompt": task_prompt,
         "bundleMeta": bundle_meta,
         "summary": summary,
@@ -148,9 +162,14 @@ def main() -> int:
     p1.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents", "people", "timeline"])
     p1.add_argument("--bundle-index", type=int, default=0)
     p1.add_argument("--max-items", type=int, default=60)
-    p1.add_argument("--raw-out", default="/tmp/mneme-runtime-raw")
-    p1.add_argument("--bundles-out", default="/tmp/mneme-runtime-bundles")
-    p1.add_argument("--materialize-out", default="/tmp/mneme-runtime-materialized")
+    p1.add_argument("--raw-out", default=None)
+    p1.add_argument("--bundles-out", default=None)
+    p1.add_argument("--materialize-out", default=None)
+    p1.add_argument(
+        "--allow-agent-export",
+        action="store_true",
+        help="Acknowledge that the prepared taskPrompt may be sent off-box via an agent/runtime.",
+    )
 
     p2 = sub.add_parser("apply-result")
     p2.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents", "people", "timeline"])

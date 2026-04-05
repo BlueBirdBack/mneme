@@ -33,19 +33,21 @@ def run_json(cmd: list[str], ok_codes: tuple[int, ...] = (0,)) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run the Mneme LLM-assisted compile loop.")
     ap.add_argument("--root", default=".", help="Workspace root")
-    ap.add_argument("--raw-out", default="/tmp/mneme-llm-raw", help="Raw evidence output dir")
-    ap.add_argument("--bundles-out", default="/tmp/mneme-llm-bundles", help="Prepared bundle output dir")
+    ap.add_argument("--raw-out", default=None, help="Raw evidence output dir")
+    ap.add_argument("--bundles-out", default=None, help="Prepared bundle output dir")
     ap.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents", "people", "timeline"], help="Category to focus on")
     ap.add_argument("--max-items", type=int, default=60, help="Max evidence items per bundle")
     ap.add_argument("--candidate", help="Optional candidate JSON to validate/materialize")
-    ap.add_argument("--materialize-out", default="/tmp/mneme-llm-materialized", help="Materialized output dir when --candidate is used")
+    ap.add_argument("--materialize-out", default=None, help="Materialized output dir when --candidate is used")
     ap.add_argument("--json", action="store_true", help="Emit JSON summary")
     args = ap.parse_args()
 
-    root = str(Path(args.root).expanduser().resolve())
-    raw_out = str(Path(args.raw_out).expanduser().resolve())
-    bundles_out = str(Path(args.bundles_out).expanduser().resolve())
-    materialize_out = str(Path(args.materialize_out).expanduser().resolve())
+    root_path = Path(args.root).expanduser().resolve()
+    root = str(root_path)
+    llm_base = root_path / ".mneme-llm"
+    raw_out = str(Path(args.raw_out).expanduser().resolve()) if args.raw_out else str((llm_base / "raw").resolve())
+    bundles_out = str(Path(args.bundles_out).expanduser().resolve()) if args.bundles_out else str((llm_base / "bundles").resolve())
+    materialize_out = str(Path(args.materialize_out).expanduser().resolve()) if args.materialize_out else str((llm_base / "materialized" / args.category).resolve())
 
     summary: dict[str, object] = {
         "root": root,
