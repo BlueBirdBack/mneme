@@ -97,20 +97,26 @@ def observed_at(path: Path) -> str | None:
     return f"{m.group(1)}T00:00:00Z"
 
 
-def build_source(root: Path, path: Path, captured_at: str) -> dict:
-    rel = str(path.relative_to(root))
+def build_source(
+    root: Path,
+    path: Path,
+    captured_at: str,
+    include_absolute_uri: bool = False,
+) -> dict:
+    rel = path.relative_to(root).as_posix()
     text = path.read_text(errors="replace")
     digest = sha256_text(text)
-    return {
+    source = {
         "id": f"src:{source_type(path)}:{rel}:sha256:{digest[:12]}",
         "sourceType": source_type(path),
-        "uri": path.resolve().as_uri(),
+        "uri": path.resolve().as_uri() if include_absolute_uri else f"workspace:///{rel}",
         "workspacePath": rel,
         "title": path.name,
         "capturedAt": captured_at,
         "contentHash": f"sha256:{digest}",
         "mimeType": "text/markdown",
     }
+    return source
 
 
 def iter_memory_lines(path: Path) -> Iterable[tuple[int, str]]:
@@ -226,6 +232,11 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Ingest OpenClaw memory files into Mneme raw evidence JSONL.")
     ap.add_argument("--root", default=".", help="Workspace root")
     ap.add_argument("--out", default="raw", help="Output directory")
+    ap.add_argument(
+        "--include-absolute-uri",
+        action="store_true",
+        help="Store absolute file:// URIs in sources.jsonl instead of workspace:/// relative URIs.",
+    )
     args = ap.parse_args()
 
     root = Path(args.root).expanduser().resolve()
@@ -234,7 +245,7 @@ def main() -> int:
 
     captured_at = iso_now()
     files = source_files(root)
-    sources = [build_source(root, path, captured_at) for path in files]
+    sources = [build_source(root, path, captured_at, include_absolute_uri=args.include_absolute_uri) for path in files]
     items: list[dict] = []
     for path, source in zip(files, sources):
         items.extend(build_items(root, path, source, captured_at))

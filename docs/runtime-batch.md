@@ -25,7 +25,8 @@ so the runtime can iterate category tasks and then merge one reviewed pack.
 ```bash
 ./scripts/mneme_runtime_batch.py prepare-batch \
   --root /path/to/workspace \
-  --out /path/to/output/batch
+  --out /path/to/output/batch \
+  --allow-agent-export
 ```
 
 This writes:

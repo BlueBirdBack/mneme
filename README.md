@@ -105,7 +105,7 @@ Mneme v1 is successful if:
 Mneme now includes its first live check:
 
 - [`scripts/mneme_memory_check.py`](./scripts/mneme_memory_check.py) — verify memory config, index health, embeddings readiness, and live recall
-- [`scripts/mneme_ingest_memory.py`](./scripts/mneme_ingest_memory.py) — ingest OpenClaw memory files into raw Mneme evidence JSONL
+- [`scripts/mneme_ingest_memory.py`](./scripts/mneme_ingest_memory.py) — ingest OpenClaw memory files into raw Mneme evidence JSONL (workspace-relative URIs by default)
 - [`scripts/mneme_compile_memory.py`](./scripts/mneme_compile_memory.py) — generate a first-pass compiled memory pack from OpenClaw-style notes
 - [`scripts/mneme_secret_scrub.py`](./scripts/mneme_secret_scrub.py) — scan memory files for likely secrets and redact obvious raw tokens/passwords
 - [`scripts/mneme_memory_drift.py`](./scripts/mneme_memory_drift.py) — detect likely contradictions and stale facts in memory files
@@ -114,8 +114,8 @@ Mneme now includes its first live check:
 - [`scripts/mneme_materialize_candidates.py`](./scripts/mneme_materialize_candidates.py) — turn validated LLM candidate entries into compiled outputs
 - [`scripts/mneme_llm_roundtrip.py`](./scripts/mneme_llm_roundtrip.py) — run the end-to-end LLM-assisted compile loop for one category
 - [`scripts/mneme_merge_pack.py`](./scripts/mneme_merge_pack.py) — merge reviewed category outputs into one compiled pack
-- [`scripts/mneme_runtime_orchestrate.py`](./scripts/mneme_runtime_orchestrate.py) — prepare/apply the runtime agent-dispatch seam for Mneme compile runs
-- [`scripts/mneme_runtime_batch.py`](./scripts/mneme_runtime_batch.py) — prepare/apply multi-category runtime compile runs
+- [`scripts/mneme_runtime_orchestrate.py`](./scripts/mneme_runtime_orchestrate.py) — prepare/apply the runtime agent-dispatch seam for Mneme compile runs (explicit `--allow-agent-export` required)
+- [`scripts/mneme_runtime_batch.py`](./scripts/mneme_runtime_batch.py) — prepare/apply multi-category runtime compile runs (explicit `--allow-agent-export` required)
 
 ## Repo hygiene
 
