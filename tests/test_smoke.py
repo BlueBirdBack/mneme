@@ -1,9 +1,11 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import datetime, timezone
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
@@ -109,6 +111,52 @@ class MnemeSmokeTests(unittest.TestCase):
         self.assertGreaterEqual(data['count'], 1)
         self.assertIn('citation', data['results'][0])
         self.assertTrue(data['results'][0]['citation']['path'])
+
+    def test_activity_mode_surfaces_git_and_session_history(self) -> None:
+        ws = self.make_workspace()
+        repo = ws / 'project-repo'
+        repo.mkdir()
+        subprocess.run(['git', 'init', str(repo)], check=True, capture_output=True, text=True)
+        subprocess.run(['git', '-C', str(repo), 'config', 'user.name', 'Mneme Test'], check=True, capture_output=True, text=True)
+        subprocess.run(['git', '-C', str(repo), 'config', 'user.email', 'mneme@example.com'], check=True, capture_output=True, text=True)
+        (repo / 'notes.txt').write_text('timeline retrieval fix\n', encoding='utf-8')
+        subprocess.run(['git', '-C', str(repo), 'add', 'notes.txt'], check=True, capture_output=True, text=True)
+        commit_env = os.environ.copy()
+        now_iso = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+        commit_env['GIT_AUTHOR_DATE'] = now_iso
+        commit_env['GIT_COMMITTER_DATE'] = now_iso
+        subprocess.run([
+            'git', '-C', str(repo), 'commit', '-m', 'fix: add recent activity retrieval'
+        ], check=True, capture_output=True, text=True, env=commit_env)
+
+        session_root = ws / 'agents'
+        sessions_dir = session_root / 'codex' / 'sessions'
+        sessions_dir.mkdir(parents=True)
+        session_event = {
+            'ts': now_iso.replace('+00:00', 'Z'),
+            'epochMs': 1775610000000,
+            'agentId': 'codex',
+            'kind': 'system_event',
+            'childSessionKey': 'agent:codex:acp:test',
+            'text': 'codex: traced recent activity through git and child sessions',
+        }
+        (sessions_dir / 'sample.acp-stream.jsonl').write_text(json.dumps(session_event) + '\n', encoding='utf-8')
+
+        data = run_json([
+            sys.executable,
+            str(SCRIPTS / 'mneme_retrieve.py'),
+            '--root', str(ws),
+            '--session-root', str(session_root),
+            '--mode', 'activity',
+            '--query', 'what did you do in the last 24 hours',
+            '--json',
+        ])
+        self.assertEqual(data['mode'], 'activity')
+        self.assertGreaterEqual(data['sourceCounts'].get('git', 0), 1)
+        self.assertGreaterEqual(data['sourceCounts'].get('sessions', 0), 1)
+        kinds = {row['kind'] for row in data['results']}
+        self.assertIn('git_commit', kinds)
+        self.assertIn('session_system_event', kinds)
 
 
 if __name__ == '__main__':
