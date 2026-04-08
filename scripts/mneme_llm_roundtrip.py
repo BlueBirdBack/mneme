@@ -33,19 +33,21 @@ def run_json(cmd: list[str], ok_codes: tuple[int, ...] = (0,)) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser(description="Run the Mneme LLM-assisted compile loop.")
     ap.add_argument("--root", default=".", help="Workspace root")
-    ap.add_argument("--raw-out", default="/tmp/mneme-llm-raw", help="Raw evidence output dir")
-    ap.add_argument("--bundles-out", default="/tmp/mneme-llm-bundles", help="Prepared bundle output dir")
+    ap.add_argument("--raw-out", default=None, help="Raw evidence output dir (defaults to <root>/.mneme-llm/raw)")
+    ap.add_argument("--bundles-out", default=None, help="Prepared bundle output dir (defaults to <root>/.mneme-llm/bundles)")
     ap.add_argument("--category", required=True, choices=["projects", "systems", "decisions", "incidents", "people", "timeline"], help="Category to focus on")
     ap.add_argument("--max-items", type=int, default=60, help="Max evidence items per bundle")
     ap.add_argument("--candidate", help="Optional candidate JSON to validate/materialize")
-    ap.add_argument("--materialize-out", default="/tmp/mneme-llm-materialized", help="Materialized output dir when --candidate is used")
+    ap.add_argument("--materialize-out", default=None, help="Materialized output dir when --candidate is used (defaults to <root>/.mneme-llm/materialized)")
     ap.add_argument("--json", action="store_true", help="Emit JSON summary")
     args = ap.parse_args()
 
-    root = str(Path(args.root).expanduser().resolve())
-    raw_out = str(Path(args.raw_out).expanduser().resolve())
-    bundles_out = str(Path(args.bundles_out).expanduser().resolve())
-    materialize_out = str(Path(args.materialize_out).expanduser().resolve())
+    root_path = Path(args.root).expanduser().resolve()
+    llm_out = root_path / ".mneme-llm"
+    root = str(root_path)
+    raw_out = str(Path(args.raw_out).expanduser().resolve()) if args.raw_out else str(llm_out / "raw")
+    bundles_out = str(Path(args.bundles_out).expanduser().resolve()) if args.bundles_out else str(llm_out / "bundles")
+    materialize_out = str(Path(args.materialize_out).expanduser().resolve()) if args.materialize_out else str(llm_out / "materialized")
 
     summary: dict[str, object] = {
         "root": root,
@@ -82,10 +84,7 @@ def main() -> int:
             "--input", candidate,
         ], ok_codes=(0, 1))
         if not summary["steps"]["validate"].get("ok", False):
-            if args.json:
-                print(json.dumps(summary, indent=2))
-            else:
-                print(json.dumps(summary, indent=2))
+            print(json.dumps(summary, indent=2))
             return 1
         summary["steps"]["materialize"] = run_json([
             str(TOOLS["materialize"]),

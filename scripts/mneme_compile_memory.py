@@ -43,6 +43,7 @@ CATEGORY_CONFIG = {
             r"\bnats\b", r"\bmysql\b", r"\bmqtt\b", r"\bssh\b", r"\bgateway\b",
             r"\btoken\b", r"\bcert\b", r"\bapi key\b", r"\bservice(s)?\b",
             r"\btimezone\b", r"\bpronouns?\b", r"\bwhat to call\b",
+            r"\battribution\b", r"\bauthorship\b",
         ],
         "headingHints": [r"active projects", r"durable project facts", r"bdeep", r"yibin", r"aqua", r"mneme"],
     },
@@ -89,6 +90,7 @@ CATEGORY_CONFIG = {
             r"\bcreature\b", r"\bemoji\b", r"\bavatar\b", r"\bbruce bell\b",
             r"\buser\b.*\bname\b", r"\bcall them\b", r"\bprefers\b.*\breplies\b",
             r"\bfrontend architect\b", r"\bhust\b", r"\bsoftware\b",
+            r"\battribution\b", r"\bauthorship\b",
         ],
         "exclude": [
             r"\bproject\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bnats\b",
@@ -138,6 +140,13 @@ GENERIC_TITLES = {
     "current status", "stable assumptions", "recommended next step", "practical interpretation",
     "docs", "automation", "runtime orchestration", "continuation guide",
 }
+GENERIC_SECTION_PATTERNS = [
+    re.compile(r"\bactive projects\b", re.I),
+    re.compile(r"\bhard constraints\b", re.I),
+    re.compile(r"\baskclaw notes\b", re.I),
+    re.compile(r"\bkey infrastructure\b", re.I),
+    re.compile(r"\bdurable project facts\b", re.I),
+]
 LOW_VALUE_PATTERNS = [
     re.compile(r"\bTODO\b", re.I),
     re.compile(r"\bpending\b", re.I),
@@ -294,6 +303,19 @@ def first_body_line(text: str) -> str:
     return cleaned
 
 
+def is_bulky_section_dump(item: SourceLine) -> bool:
+    if item.kind != "note_section":
+        return False
+    title = extract_section_title(item) or ""
+    body = body_lines(item.text)
+    text_len = len(clean_markdown_text(item.text))
+    if any(p.search(title) for p in GENERIC_SECTION_PATTERNS) and len(body) >= 3:
+        return True
+    if len(body) >= 6 and text_len >= 500:
+        return True
+    return False
+
+
 def is_generic_or_noise_title(text: str) -> bool:
     norm = normalize_title(text)
     if not norm:
@@ -316,6 +338,8 @@ def is_low_value_item(item: SourceLine, category: str | None = None) -> bool:
     if is_heading_only_text(text):
         return True
     if item.kind == "note_section" and not body_lines(text):
+        return True
+    if is_bulky_section_dump(item):
         return True
     body = first_body_line(text)
     if is_generic_or_noise_title(body):
@@ -626,7 +650,7 @@ def build_report(out_dir: Path, sources: list[str], collected: dict[str, list[So
     lines += ["", "## Inputs", *[f"- `{s}`" for s in sources], "", "## Candidate counts"]
     for category, items in collected.items():
         lines.append(f"- {category}: {len(unique_lines(items))}")
-    lines += [f"- documents: {document_count}", f"- entries: {entry_count}", "", "## Notes", "- Heading-only lines are suppressed.", "- Low-value project noise is filtered.", "- Timeline events are deduplicated by day/title.", "- Bucket classification is heading-aware and includes a people/profile lane.", ""]
+    lines += [f"- documents: {document_count}", f"- entries: {entry_count}", "", "## Notes", "- Heading-only lines are suppressed.", "- Low-value project noise is filtered.", "- Bulky generic section dumps are suppressed so bullet-level facts win.", "- Timeline events are deduplicated by day/title.", "- Bucket classification is heading-aware and includes a people/profile lane.", ""]
     (out_dir / "report.md").write_text("\n".join(lines))
 
 

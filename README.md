@@ -108,8 +108,10 @@ Mneme now includes its first live check:
 - [`scripts/mneme_ingest_memory.py`](./scripts/mneme_ingest_memory.py) — ingest OpenClaw memory files into raw Mneme evidence JSONL
 - [`scripts/mneme_compile_memory.py`](./scripts/mneme_compile_memory.py) — generate a first-pass compiled memory pack from OpenClaw-style notes
 - [`scripts/mneme_secret_scrub.py`](./scripts/mneme_secret_scrub.py) — scan memory files for likely secrets and redact obvious raw tokens/passwords
-- [`scripts/mneme_memory_drift.py`](./scripts/mneme_memory_drift.py) — detect likely contradictions and stale facts in memory files
+- [`scripts/mneme_memory_drift.py`](./scripts/mneme_memory_drift.py) — detect likely contradictions, duplicates, and stale facts in memory files
 - [`scripts/mneme_run.py`](./scripts/mneme_run.py) — run the Mneme maintenance flow in one command
+- [`scripts/mneme_retrieve.py`](./scripts/mneme_retrieve.py) — lexical-first retrieval with inspectable citations
+- [`scripts/mneme.py`](./scripts/mneme.py) — single operator CLI wrapper over the Mneme scripts
 - [`scripts/mneme_llm_compile.py`](./scripts/mneme_llm_compile.py) — prepare/validate LLM-assisted compile passes against raw evidence
 - [`scripts/mneme_materialize_candidates.py`](./scripts/mneme_materialize_candidates.py) — turn validated LLM candidate entries into compiled outputs
 - [`scripts/mneme_llm_roundtrip.py`](./scripts/mneme_llm_roundtrip.py) — run the end-to-end LLM-assisted compile loop for one category
@@ -130,7 +132,7 @@ If you need sample data in the repo, keep it tiny and sanitized under `examples/
 Run the smoke tests with:
 
 ```bash
-python -m unittest discover -s tests -p 'test_*.py'
+python3 -m unittest discover -s tests -p 'test_*.py'
 ```
 
 These cover three boring-but-important paths:
@@ -150,6 +152,9 @@ These cover three boring-but-important paths:
 - [Compiler format](./docs/compiler-format.md)
 - [Secret scrub](./docs/secret-scrub.md)
 - [Memory drift](./docs/memory-drift.md)
+- [Retrieval](./docs/retrieval.md)
+- [Shared memory promotion rules](./docs/shared-memory.md)
+- [Operator CLI](./docs/operator-cli.md)
 - [Runner](./docs/runner.md)
 - [LLM compiler](./docs/llm-compiler.md)
 - [Candidate materialization](./docs/materialize-candidates.md)

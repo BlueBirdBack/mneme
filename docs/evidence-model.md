@@ -203,7 +203,7 @@ This preserves recall usefulness without turning memory into a credential dump.
 {
   "id": "src:memory:MEMORY.md:sha256:abc123",
   "sourceType": "memory_file",
-  "uri": "file:///home/openclaw/.openclaw/workspace/MEMORY.md",
+  "uri": "workspace:///MEMORY.md",
   "workspacePath": "MEMORY.md",
   "title": "Six long-term memory",
   "capturedAt": "2026-04-03T11:30:00Z",

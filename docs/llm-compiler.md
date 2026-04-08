@@ -43,8 +43,8 @@ Creates stable JSON bundles for an agent/LLM to read.
 
 ```bash
 ./scripts/mneme_llm_compile.py prepare \
-  --raw /tmp/mneme-raw \
-  --out /tmp/mneme-llm-bundles
+  --raw ./.mneme-raw \
+  --out ./.mneme-llm-bundles
 ```
 
 Output:
@@ -60,7 +60,7 @@ Checks that LLM-produced candidate entries:
 
 ```bash
 ./scripts/mneme_llm_compile.py validate \
-  --raw /tmp/mneme-raw \
+  --raw ./.mneme-raw \
   --input ./candidate-projects.json
 ```
 

@@ -18,9 +18,10 @@ Runs the Mneme flow in one shot:
 ## Usage
 
 ```bash
-./scripts/mneme_run.py --root ~/.openclaw/workspace --out /tmp/mneme-pack
+./scripts/mneme_run.py --root ~/.openclaw/workspace --out ./.mneme-pack
 ./scripts/mneme_run.py --root ~/.openclaw/workspace --skip-compile
 ./scripts/mneme_run.py --root ~/.openclaw/workspace --apply-scrub --json
+./scripts/mneme.py run --root ~/.openclaw/workspace --out ./.mneme-pack
 ```
 
 ## Notes

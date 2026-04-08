@@ -11,6 +11,7 @@ Outputs:
 - raw/report.json
 
 This is intentionally deterministic and boring.
+Default source URIs are workspace-relative to avoid leaking host paths.
 """
 
 from __future__ import annotations
@@ -97,14 +98,19 @@ def observed_at(path: Path) -> str | None:
     return f"{m.group(1)}T00:00:00Z"
 
 
-def build_source(root: Path, path: Path, captured_at: str) -> dict:
+def workspace_uri(root: Path, path: Path) -> str:
+    rel = path.relative_to(root).as_posix()
+    return f"workspace:///{rel}"
+
+
+def build_source(root: Path, path: Path, captured_at: str, absolute_file_uris: bool) -> dict:
     rel = str(path.relative_to(root))
     text = path.read_text(errors="replace")
     digest = sha256_text(text)
     return {
         "id": f"src:{source_type(path)}:{rel}:sha256:{digest[:12]}",
         "sourceType": source_type(path),
-        "uri": path.resolve().as_uri(),
+        "uri": path.resolve().as_uri() if absolute_file_uris else workspace_uri(root, path),
         "workspacePath": rel,
         "title": path.name,
         "capturedAt": captured_at,
@@ -226,6 +232,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Ingest OpenClaw memory files into Mneme raw evidence JSONL.")
     ap.add_argument("--root", default=".", help="Workspace root")
     ap.add_argument("--out", default="raw", help="Output directory")
+    ap.add_argument("--absolute-file-uris", action="store_true", help="Store absolute file:// URIs instead of workspace:/// URIs")
     args = ap.parse_args()
 
     root = Path(args.root).expanduser().resolve()
@@ -234,7 +241,7 @@ def main() -> int:
 
     captured_at = iso_now()
     files = source_files(root)
-    sources = [build_source(root, path, captured_at) for path in files]
+    sources = [build_source(root, path, captured_at, args.absolute_file_uris) for path in files]
     items: list[dict] = []
     for path, source in zip(files, sources):
         items.extend(build_items(root, path, source, captured_at))
@@ -248,6 +255,7 @@ def main() -> int:
         "itemCount": len(items),
         "sourceTypes": {k: sum(1 for s in sources if s["sourceType"] == k) for k in sorted({s["sourceType"] for s in sources})},
         "itemKinds": {k: sum(1 for it in items if it["kind"] == k) for k in sorted({it["kind"] for it in items})},
+        "uriMode": "absolute-file" if args.absolute_file_uris else "workspace-relative",
         "out": str(out),
     }
     (out / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False))

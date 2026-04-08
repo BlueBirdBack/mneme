@@ -25,6 +25,7 @@ CATEGORY_CONFIG = {
         "exclude": [
             r"\bnats\b", r"\bmysql\b", r"\bmqtt\b", r"\bssh\b", r"\bgateway\b",
             r"\btoken\b", r"\bcert\b", r"\bservice(s)?\b", r"\bapi key\b", r"\bport\b",
+            r"\battribution\b", r"\bauthorship\b",
         ],
         "headingHints": [r"active projects", r"durable project facts", r"bdeep", r"yibin", r"aqua", r"mneme"],
     },
@@ -60,6 +61,7 @@ CATEGORY_CONFIG = {
             r"\bname\b", r"\bwhat to call\b", r"\bpronouns?\b", r"\btimezone\b", r"\bvibe\b",
             r"\bcreature\b", r"\bemoji\b", r"\bavatar\b", r"\bbruce bell\b",
             r"\buser\b.*\bname\b", r"\bcall them\b", r"\bprefers\b.*\breplies\b",
+            r"\battribution\b", r"\bauthorship\b",
         ],
         "exclude": [
             r"\bproject\b", r"\bmysql\b", r"\bmqtt\b", r"\bforgejo\b", r"\bnats\b",
@@ -80,6 +82,13 @@ CATEGORY_CONFIG = {
 
 CATEGORY_PRIORITY = {"incidents": 6, "decisions": 5, "systems": 4, "projects": 3, "people": 2, "timeline": 1}
 VALID_STATES = {"observed", "inferred", "stale", "contradicted", "historical"}
+GENERIC_SECTION_PATTERNS = [
+    re.compile(r"\bactive projects\b", re.I),
+    re.compile(r"\bhard constraints\b", re.I),
+    re.compile(r"\baskclaw notes\b", re.I),
+    re.compile(r"\bkey infrastructure\b", re.I),
+    re.compile(r"\bdurable project facts\b", re.I),
+]
 
 SYSTEM_PROMPT = """You are compiling Mneme candidate memory entries from raw evidence.
 
@@ -103,6 +112,50 @@ def load_jsonl(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def clean_markdown_text(text: str) -> str:
+    s = text.strip()
+    s = re.sub(r"^#{1,6}\s+", "", s)
+    s = re.sub(r"^[-*+]\s+", "", s)
+    s = re.sub(r"`([^`]+)`", r"\1", s)
+    s = re.sub(r"\s+", " ", s)
+    return s.strip()
+
+
+def body_lines(text: str) -> list[str]:
+    out: list[str] = []
+    for ln in text.splitlines():
+        s = ln.strip()
+        if not s or s.startswith("#") or s.startswith("```"):
+            continue
+        cleaned = clean_markdown_text(s)
+        if cleaned:
+            out.append(cleaned)
+    return out
+
+
+def extract_section_title(item: dict[str, Any]) -> str:
+    text = (item.get("text") or "").strip()
+    lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
+    if lines and lines[0].startswith("#"):
+        level = len(lines[0]) - len(lines[0].lstrip("#"))
+        return lines[0][level:].strip()
+    heading_path = list((item.get("provenance") or {}).get("headingPath") or [])
+    return heading_path[-1] if heading_path else ""
+
+
+def is_bulky_section_dump(item: dict[str, Any]) -> bool:
+    if item.get("kind") != "note_section":
+        return False
+    title = extract_section_title(item)
+    body = body_lines(item.get("text") or "")
+    text_len = len(clean_markdown_text(item.get("text") or ""))
+    if any(p.search(title) for p in GENERIC_SECTION_PATTERNS) and len(body) >= 3:
+        return True
+    if len(body) >= 6 and text_len >= 500:
+        return True
+    return False
+
+
 def score_category(text: str, heading_path: list[str], category: str) -> int:
     cfg = CATEGORY_CONFIG[category]
     tl = text.lower()
@@ -123,6 +176,8 @@ def score_category(text: str, heading_path: list[str], category: str) -> int:
 def classify_item(item: dict[str, Any]) -> str | None:
     text = (item.get("text") or "").strip()
     if not text:
+        return None
+    if is_bulky_section_dump(item):
         return None
     heading_path = list((item.get("provenance") or {}).get("headingPath") or [])
     best_category = None

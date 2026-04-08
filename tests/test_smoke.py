@@ -81,12 +81,34 @@ class MnemeSmokeTests(unittest.TestCase):
             '--raw-out', str(raw_out),
             '--bundles-out', str(bundles_out),
             '--materialize-out', str(materialize_out),
+            '--allow-agent-export',
         ])
         self.assertEqual(data['category'], 'people')
         self.assertEqual(data['bundleMeta']['category'], 'people')
         self.assertGreater(data['bundleMeta']['itemCount'], 0)
         self.assertTrue(Path(data['bundleFile']).exists())
         self.assertIn('Category: people', data['taskPrompt'])
+
+    def test_retrieval_returns_citations(self) -> None:
+        ws = self.make_workspace()
+        raw_out = ws / 'raw-out'
+        run_json([
+            sys.executable,
+            str(SCRIPTS / 'mneme_ingest_memory.py'),
+            '--root', str(ws),
+            '--out', str(raw_out),
+        ])
+        data = run_json([
+            sys.executable,
+            str(SCRIPTS / 'mneme_retrieve.py'),
+            '--root', str(ws),
+            '--raw', str(raw_out),
+            '--query', 'Project Alpha',
+            '--json',
+        ])
+        self.assertGreaterEqual(data['count'], 1)
+        self.assertIn('citation', data['results'][0])
+        self.assertTrue(data['results'][0]['citation']['path'])
 
 
 if __name__ == '__main__':

@@ -49,6 +49,7 @@ def prepare_batch(args: argparse.Namespace) -> dict[str, Any]:
             "--raw-out", str(raw_out),
             "--bundles-out", str(bundles_out),
             "--materialize-out", str(materialize_out),
+            "--allow-agent-export",
         ])
         task_file = base_out / f"task-{category}.json"
         task_file.write_text(json.dumps(result, ensure_ascii=False, indent=2))
@@ -67,6 +68,7 @@ def prepare_batch(args: argparse.Namespace) -> dict[str, Any]:
         "bundlesOut": str(bundles_out),
         "categories": categories,
         "tasks": tasks,
+        "agentExportAllowed": True,
     }
     (base_out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2))
     return manifest

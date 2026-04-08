@@ -45,7 +45,13 @@ Output:
 ```bash
 ./scripts/mneme_ingest_memory.py \
   --root ~/.openclaw/workspace \
-  --out /tmp/mneme-raw
+  --out ./.mneme-raw
+
+# Opt in only if you truly need host-absolute paths in source URIs
+./scripts/mneme_ingest_memory.py \
+  --root ~/.openclaw/workspace \
+  --out ./.mneme-raw \
+  --absolute-file-uris
 ```
 
 ## Why JSONL
