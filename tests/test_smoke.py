@@ -28,22 +28,7 @@ class MnemeSmokeTests(unittest.TestCase):
         self.addCleanup(lambda: shutil.rmtree(tmp, ignore_errors=True))
         return ws
 
-    def test_ingest_fixture_workspace(self) -> None:
-        ws = self.make_workspace()
-        raw_out = ws / 'raw-out'
-        data = run_json([
-            sys.executable,
-            str(SCRIPTS / 'mneme_ingest_memory.py'),
-            '--root', str(ws),
-            '--out', str(raw_out),
-        ])
-        self.assertGreaterEqual(data['sourceCount'], 2)
-        self.assertGreater(data['itemCount'], 0)
-        self.assertTrue((raw_out / 'sources.jsonl').exists())
-        self.assertTrue((raw_out / 'items.jsonl').exists())
-
-    def test_compile_fixture_raw_into_outputs(self) -> None:
-        ws = self.make_workspace()
+    def compile_workspace(self, ws: Path) -> Path:
         raw_out = ws / 'raw-out'
         compiled_out = ws / 'compiled-out'
         run_json([
@@ -61,13 +46,69 @@ class MnemeSmokeTests(unittest.TestCase):
         ], capture_output=True, text=True)
         if cp.returncode != 0:
             raise AssertionError(f"Compile failed ({cp.returncode})\nSTDOUT:\n{cp.stdout}\nSTDERR:\n{cp.stderr}")
+        return compiled_out
+
+    def test_ingest_fixture_workspace(self) -> None:
+        ws = self.make_workspace()
+        raw_out = ws / 'raw-out'
+        data = run_json([
+            sys.executable,
+            str(SCRIPTS / 'mneme_ingest_memory.py'),
+            '--root', str(ws),
+            '--out', str(raw_out),
+        ])
+        self.assertGreaterEqual(data['sourceCount'], 2)
+        self.assertGreater(data['itemCount'], 0)
+        self.assertTrue((raw_out / 'sources.jsonl').exists())
+        self.assertTrue((raw_out / 'items.jsonl').exists())
+
+    def test_compile_fixture_raw_into_outputs(self) -> None:
+        ws = self.make_workspace()
+        compiled_out = self.compile_workspace(ws)
+        projects_text = (compiled_out / 'projects.md').read_text()
+        people_text = (compiled_out / 'people.md').read_text()
         self.assertTrue((compiled_out / 'projects.md').exists())
         self.assertTrue((compiled_out / 'people.md').exists())
         self.assertTrue((compiled_out / 'timeline.md').exists())
-        self.assertIn('Project Alpha', (compiled_out / 'projects.md').read_text())
-        self.assertIn('Compiled Memory — People', (compiled_out / 'people.md').read_text())
+        self.assertIn('Project Alpha', projects_text)
+        self.assertNotIn('## Active Projects', projects_text)
+        self.assertIn('Compiled Memory — People', people_text)
+        self.assertIn('What to call them', people_text)
         self.assertTrue((compiled_out / 'documents.jsonl').exists())
         self.assertTrue((compiled_out / 'entries.jsonl').exists())
+
+    def test_compile_demotes_generic_sections_and_prefers_system_subheadings(self) -> None:
+        ws = self.make_workspace()
+        extra_note = ws / 'memory' / '2026-04-01-routing.md'
+        extra_note.write_text(
+            '# 2026-04-01\n\n'
+            '## Aqua-CQ Project\n\n'
+            '### Server Access\n'
+            '- Hostname: iv-ydyut13e9ss6ipm2he1t\n'
+            '- Ubuntu 24.04.4, 8GB RAM, 40GB disk\n'
+            '- Project at /opt/aqua-cq (backend only), frontend deployed to /var/www/html/cq/\n\n'
+            '### Three services on the box\n'
+            '- :8003 — aqua-qdh (backend-dev, /opt/aqua-qdh)\n\n'
+            '## Deploy process (correct)\n\n'
+            '```bash\n'
+            '# Build\n'
+            'export PATH="$HOME/.openclaw/tools/node-v22.22.0/bin:$PATH"\n'
+            'cd /opt/aqua-cq && npm run build\n'
+            '```\n',
+            encoding='utf-8',
+        )
+
+        compiled_out = self.compile_workspace(ws)
+        projects_text = (compiled_out / 'projects.md').read_text()
+        systems_text = (compiled_out / 'systems.md').read_text()
+
+        self.assertNotIn('## Build', projects_text)
+        self.assertNotIn('## Hostname', projects_text)
+        self.assertNotIn('## Ubuntu 24.04.4, 8GB RAM, 40GB disk', projects_text)
+        self.assertNotIn('## :8003 — aqua-qdh (backend-dev, /opt/aqua-qdh)', projects_text)
+        self.assertIn('## Server Access — Hostname', systems_text)
+        self.assertIn('## Ubuntu 24.04.4, 8GB RAM, 40GB disk', systems_text)
+        self.assertIn('## :8003 — aqua-qdh (backend-dev, /opt/aqua-qdh)', systems_text)
 
     def test_runtime_prepare_people_category(self) -> None:
         ws = self.make_workspace()
