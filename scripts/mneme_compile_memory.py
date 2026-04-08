@@ -58,7 +58,10 @@ CATEGORY_CONFIG = {
             r"\bbounty\b", r"\bissue\b", r"\bprefers\b", r"\bavoid\b", r"\bno public\b",
             r"\bproof summaries\b", r"\bdecision support\b",
         ],
-        "headingHints": [r"systems", r"infrastructure", r"key infrastructure", r"access", r"memory stack"],
+        "headingHints": [
+            r"systems", r"infrastructure", r"key infrastructure", r"access", r"memory stack",
+            r"server access", r"services on the box",
+        ],
     },
     "decisions": {
         "include": [
@@ -120,7 +123,7 @@ ENTRY_TYPES = {
 }
 HEADING_BUCKET_HINTS = {
     "projects": [r"active projects", r"durable project facts", r"bdeep", r"yibin", r"aqua", r"mneme"],
-    "systems": [r"key infrastructure", r"systems", r"access", r"memory stack"],
+    "systems": [r"key infrastructure", r"systems", r"access", r"memory stack", r"server access", r"services on the box"],
     "decisions": [r"durable decisions", r"preferences", r"methods", r"hard constraints"],
     "incidents": [r"incidents", r"warnings"],
     "people": [r"identity", r"user", r"people", r"profile"],
@@ -138,7 +141,7 @@ GENERIC_TITLES = {
     "conversation summary", "source files", "sources", "tools", "methods", "pending",
     "what it does", "what it is", "what it is not", "goal", "status",
     "current status", "stable assumptions", "recommended next step", "practical interpretation",
-    "docs", "automation", "runtime orchestration", "continuation guide",
+    "docs", "automation", "runtime orchestration", "continuation guide", "build",
 }
 GENERIC_SECTION_PATTERNS = [
     re.compile(r"\bactive projects\b", re.I),
@@ -322,6 +325,8 @@ def is_generic_or_noise_title(text: str) -> bool:
         return True
     if norm in GENERIC_TITLES:
         return True
+    if any(p.search(norm) for p in GENERIC_SECTION_PATTERNS):
+        return True
     if re.fullmatch(r"20\d{2} \d{2} \d{2}", norm):
         return True
     return False
@@ -337,8 +342,12 @@ def is_low_value_item(item: SourceLine, category: str | None = None) -> bool:
         return True
     if is_heading_only_text(text):
         return True
-    if item.kind == "note_section" and not body_lines(text):
-        return True
+    if item.kind == "note_section":
+        section_title = extract_section_title(item)
+        if section_title and is_generic_or_noise_title(section_title):
+            return True
+        if not body_lines(text):
+            return True
     if is_bulky_section_dump(item):
         return True
     body = first_body_line(text)
@@ -355,7 +364,7 @@ def heading_bucket(item: SourceLine) -> tuple[str | None, int]:
     score = 0
     for category, pats in HEADING_BUCKET_HINTS.items():
         s = sum(1 for pat in pats if re.search(pat, heading_text))
-        if s > score:
+        if s > score or (s == score and s > 0 and best and CATEGORY_PRIORITY[category] > CATEGORY_PRIORITY[best]):
             best, score = category, s
     return best, score
 
