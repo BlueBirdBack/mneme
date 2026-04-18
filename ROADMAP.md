@@ -5,6 +5,23 @@
 - Establish v1 scope: personal memory first
 - Create initial repo docs, architecture notes, and tracked issues
 
+## Packaging / operator UX spine
+Goal: make Mneme easier to run, inspect, and deploy.
+
+Deliverables:
+- clearer split between `protocol/`, `runtime/`, and `distribution/`
+- one obvious operator-facing CLI surface
+- tiny sanitized sample workspace
+- install/migration guidance
+- cron/systemd deployment examples
+- strict failure propagation and schema-backed validation
+
+Success criteria:
+- Mneme feels like a product, not a bag of scripts
+- operators can discover the right entrypoint quickly
+- deployment docs are boring and repeatable
+- runtime checks fail loudly instead of faking success
+
 ## Phase 1 — Raw evidence ingestion
 Goal: collect the things an agent actually did and saw.
 
